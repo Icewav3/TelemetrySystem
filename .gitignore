@@ -1,0 +1,100 @@
+#generated data
+/telemetry_data
+
+# Python
+*.py[cod]
+*$py.class
+__pycache__/
+python__version__
+env/
+venv/
+.venv/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.exe
+*.msi
+*.whl
+
+# Pytest
+.pytest_cache/
+__pycache__/
+
+# IDE
+.vscode/
+.idea/
+
+# Editor
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+instance/
+*.pid
+*.seed
+*.sqlite
+
+# Django
+*.po
+*.mo
+django_admin_thumbshots/
+staticfiles/
+media/
+
+# Flask
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy/
+
+# Other
+.coveralls.yml
+.env
+.grid/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.volumeicon.sys
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+*.swp
+*.swo
