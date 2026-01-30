@@ -1,15 +1,17 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
-import csv
-import os
 from datetime import datetime
 from pathlib import Path
 import threading
 
 class TelemetryHandler(BaseHTTPRequestHandler):
-    # Directory to store data files
-    DATA_DIR = Path("telemetry_data")
+    """
+    Telemetry server for UE5 Playtest Data Collection
+    Receives JSON events from multiple clients and writes to single JSONL file
+    """
+    DATA_FILE = Path("telemetry_data") / "telemetry.jsonl"
     _write_lock = threading.Lock()
+    _event_count = 0
     
     def do_POST(self):
         if self.path == '/telemetry':
@@ -19,39 +21,20 @@ class TelemetryHandler(BaseHTTPRequestHandler):
                 body = self.rfile.read(content_length)
                 data = json.loads(body.decode('utf-8'))
                 
-                # Extract machine identifier (or use IP as fallback)
-                machine_id = data.get('machine_id', self.client_address[0])
+                # Add server-side timestamp for verification
+                data['server_timestamp'] = datetime.now().isoformat()
                 
-                # Create data directory if it doesn't exist
-                self.DATA_DIR.mkdir(exist_ok=True)
+                # Ensure data directory exists
+                self.DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
                 
-                # Write to machine-specific CSV file with thread lock
-                filename = self.DATA_DIR / f"{machine_id}_telemetry.csv"
-                
-                # Flatten nested structure (player_pos)
-                player_pos = data.get('player_pos', {})
-                csv_entry = {
-                    'timestamp': datetime.now().isoformat(),
-                    'machine_id': machine_id,
-                    'frame': data.get('frame'),
-                    'player_pos_x': player_pos.get('x'),
-                    'player_pos_y': player_pos.get('y'),
-                    'player_pos_z': player_pos.get('z'),
-                    'fps': data.get('fps'),
-                    'memory_mb': data.get('memory_mb'),
-                    'active_enemies': data.get('active_enemies')
-                }
-                
-                fieldnames = ['timestamp', 'machine_id', 'frame', 'player_pos_x', 'player_pos_y', 'player_pos_z', 'fps', 'memory_mb', 'active_enemies']
-                
-                # Thread-safe CSV writing
-                file_exists = filename.exists()
+                # Thread-safe write to single JSONL file (one JSON object per line)
                 with self._write_lock:
-                    with open(filename, 'a', newline='') as f:
-                        writer = csv.DictWriter(f, fieldnames=fieldnames)
-                        if not file_exists:
-                            writer.writeheader()
-                        writer.writerow(csv_entry)
+                    with open(self.DATA_FILE, 'a') as f:
+                        f.write(json.dumps(data) + '\n')
+                        f.flush()  # Ensure immediate write to disk
+                    
+                    # Increment event counter
+                    TelemetryHandler._event_count += 1
                 
                 # Send success response
                 self.send_response(200)
@@ -59,10 +42,24 @@ class TelemetryHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({'status': 'success'}).encode())
                 
-                print(f"Received data from {machine_id}")
+                # Periodic logging (every 50 events to reduce spam)
+                event_type = data.get('event_type', 'unknown')
+                if TelemetryHandler._event_count % 50 == 0:
+                    print(f"[{TelemetryHandler._event_count}] Received {event_type} from "
+                          f"{data.get('machine_id', 'unknown')} session {data.get('session_id', 'unknown')}")
                 
+                # Log important events immediately
+                if event_type in ['session_start', 'session_end', 'death']:
+                    print(f"[{event_type.upper()}] {data.get('machine_id')} - {data.get('session_id')}")
+                
+            except json.JSONDecodeError as e:
+                print(f"JSON Error: {e}")
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': 'Invalid JSON'}).encode())
             except Exception as e:
-                print(f"Error: {e}")
+                print(f"Server Error: {e}")
                 self.send_response(500)
                 self.end_headers()
         else:
@@ -70,16 +67,26 @@ class TelemetryHandler(BaseHTTPRequestHandler):
             self.end_headers()
     
     def log_message(self, format, *args):
-        # Suppress default logging to reduce console spam
+        # Suppress default HTTP logging to reduce console spam
         pass
 
 def run_server(port=8080):
     server_address = ('0.0.0.0', port)
     httpd = HTTPServer(server_address, TelemetryHandler)
+    
+    print("=" * 60)
+    print("UE5 TELEMETRY SERVER")
+    print("=" * 60)
     print(f"Server running on port {port}")
-    print(f"Data will be saved to: {TelemetryHandler.DATA_DIR.absolute()}")
-    print("Press Ctrl+C to stop")
-    httpd.serve_forever()
+    print(f"Data file: {TelemetryHandler.DATA_FILE.absolute()}")
+    print("Listening for events from UE5 clients...")
+    print("Press Ctrl+C to stop\n")
+    
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print(f"\n\nServer stopped. Total events received: {TelemetryHandler._event_count}")
+        print(f"Data saved to: {TelemetryHandler.DATA_FILE.absolute()}")
 
 if __name__ == '__main__':
     run_server()
