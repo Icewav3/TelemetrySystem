@@ -1,7 +1,7 @@
 # PowerShell client script to send test telemetry data
 param(
     #laptop vpn ip = "10.243.11.239" 
-    #deskop ip = " 10.20.5.27"
+    #deskop ip = "10.20.5.27"
     [string]$ServerIP = "10.20.5.27",
     [int]$Port = 8080,
     [string]$MachineID = $env:COMPUTERNAME,
