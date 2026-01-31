@@ -33,10 +33,9 @@ def _(data):
 
 @app.cell
 def _(data, pd):
-    # First, drop rows with null player_pos values
     clean_data = data.dropna(subset=['player_pos'])
 
-    # Extract x and y coordinates from player_pos
+    # Extract x and y
     pos_df = clean_data['player_pos'].apply(pd.Series)
     # merge extracted coordinates back into the original dataframe
     combined_data = pd.concat([
@@ -61,26 +60,41 @@ def _(combined_data, px):
 
 
 @app.cell
-def _(combined_data, px):
+def _(combined_data, pd, px):
     anim_data = combined_data.copy()
-    # Create a relative frame number for animation
     anim_data['relative_frame'] = anim_data.groupby('session_id')['frame'].transform(
         lambda x: x - x.min()
     )
+    anim_data = anim_data.sort_values(['session_id', 'relative_frame'])
 
-    fig2 = px.scatter(
-        anim_data,
+    # Create cumulative dataset
+    cumulative_data = []
+    for frame in sorted(anim_data['relative_frame'].unique()):
+        # Get all data up to and including this frame for each session
+        frame_data = anim_data[anim_data['relative_frame'] <= frame].copy()
+        frame_data['animation_frame'] = frame  # All historical points 
+        cumulative_data.append(frame_data)
+
+    cumulative_df = pd.concat(cumulative_data, ignore_index=True)
+
+    # Now animate with the cumulative data
+    fig2 = px.line(
+        cumulative_df,
         x='x',
         y='y',
-        animation_frame='relative_frame',  # Animate by this column
-        animation_group='session_id',      # Group points by session
+        animation_frame='animation_frame',
         color='session_id',
+        line_group='session_id',
         range_x=[anim_data['x'].min()-100, anim_data['x'].max()+100],
         range_y=[anim_data['y'].min()-100, anim_data['y'].max()+100],
     )
 
-    fig2.update_traces(marker=dict(size=10))
-    fig2.update_layout(title='Animated Player Positions', height=600)
+    fig2.update_traces(
+        line=dict(width=2),
+        opacity=0.4
+    )
+
+    fig2.update_layout(title='Animated Player Pathing with Trails', height=600)
     fig2
     return
 
