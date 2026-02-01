@@ -10,7 +10,9 @@ def _():
     import plotly.express as px
     import plotly.graph_objects as go
     import numpy as np
-    return pd, px
+    import altair as alt
+    import marimo as mo
+    return alt, mo, pd, px
 
 
 @app.cell
@@ -90,12 +92,51 @@ def _(combined_data, pd, px):
     )
 
     fig2.update_traces(
+        mode='markers+lines',
         line=dict(width=2),
-        opacity=0.4
+        marker=dict(size=5, opacity=1.0),  # Full opacity for markers
+        opacity=0.4  # This applies to the line portion
     )
+
+    # Override marker opacity to be full
+    for trace in fig2.data:
+        trace.marker.opacity = 1.0
 
     fig2.update_layout(title='Animated Player Pathing with Trails', height=600)
     fig2
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### messing around
+    """)
+    return
+
+
+@app.cell
+def _(alt, combined_data, mo, pd):
+    heatmap_data = combined_data.copy()
+    heatmap_data['x_bin'] = pd.cut(heatmap_data['x'], bins=25)
+    heatmap_data['y_bin'] = pd.cut(heatmap_data['y'], bins=25)
+
+    heat = heatmap_data.groupby(['x_bin', 'y_bin']).size().reset_index(name='count')
+    heat['x_mid'] = heat['x_bin'].apply(lambda x: x.mid)
+    heat['y_mid'] = heat['y_bin'].apply(lambda x: x.mid)
+
+    chart = alt.Chart(heat).mark_rect().encode(
+        x=alt.X('x_mid:Q', title='X Position'),
+        y=alt.Y('y_mid:Q', title='Y Position'),
+        color=alt.Color('count:Q', scale=alt.Scale(scheme='reds'), title='Activity'),
+        tooltip=['count:Q']
+    ).properties(
+        width=700,
+        height=600,
+        title='Player Activity Heatmap'
+    )
+
+    mo.ui.altair_chart(chart)
     return
 
 
