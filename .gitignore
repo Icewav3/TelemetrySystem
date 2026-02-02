@@ -1,5 +1,6 @@
 #generated data
 /telemetry_data
+/__marimo__
 
 # Python
 *.py[cod]
