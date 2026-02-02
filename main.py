@@ -50,20 +50,56 @@ def _(data, pd):
 
 
 @app.cell
-def _(combined_data, px):
-    fig1 = px.line(combined_data, x='x', y='y', color='session_id', title="Player Positions by Session ID", labels={"x": "X Coordinate", "y": "Y Coordinate"})
+def _(combined_data):
+    # drop end of level
+    level_data = combined_data[combined_data['x'] >= -8000]
+    return (level_data,)
+
+
+@app.cell
+def _(level_data, px):
+    fig1 = px.line(level_data, x='x', y='z', color='session_id', 
+                   title="Player Positions by Session ID", 
+                   labels={"x": "X Coordinate", "z": "Z Coordinate"})
     fig1.update_traces(
         mode='markers+lines', 
         marker=dict(size=5),
         line=dict(width=1)
-        )
+    )
+    fig1.update_layout(height=600)
+    fig1.update_xaxes(autorange="reversed")   
     fig1
     return
 
 
 @app.cell
-def _(combined_data, pd, px):
-    anim_data = combined_data.copy()
+def _(alt, combined_data, mo, pd):
+    dwell_data = combined_data.copy()
+    dwell_data['x_zone'] = pd.cut(dwell_data['x'], bins=10)
+    dwell_data['z_zone'] = pd.cut(dwell_data['z'], bins=10)
+
+    dwell = dwell_data.groupby(['x_zone', 'z_zone']).size().reset_index(name='dwell_time')
+    dwell['x_mid'] = dwell['x_zone'].apply(lambda x: x.mid)
+    dwell['z_mid'] = dwell['z_zone'].apply(lambda x: x.mid)
+
+    fig5 = alt.Chart(dwell).mark_rect().encode(
+        x=alt.X('x_mid:Q', title='X Zone (Right)'),
+        y=alt.Y('z_mid:Q', title='Z Zone (Up)'),
+        color=alt.Color('dwell_time:Q', scale=alt.Scale(scheme='orangered'), title='Frames Spent'),
+        tooltip=['x_mid:Q', 'z_mid:Q', 'dwell_time:Q']
+    ).properties(
+        width=700,
+        height=600,
+        title='Dwell Time Heatmap - Where Players Linger'
+    )
+
+    mo.ui.altair_chart(fig5)
+    return
+
+
+@app.cell
+def _(level_data, pd, px):
+    anim_data = level_data.copy()
     anim_data['relative_frame'] = anim_data.groupby('session_id')['frame'].transform(
         lambda x: x - x.min()
     )
@@ -103,6 +139,7 @@ def _(combined_data, pd, px):
         trace.marker.opacity = 1.0
 
     fig2.update_layout(title='Animated Player Pathing with Trails', height=600)
+    fig2.update_xaxes(autorange="reversed")   
     fig2
     return
 
