@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.19.7"
-app = marimo.App()
+app = marimo.App(width="full")
 
 
 @app.cell
@@ -52,17 +52,10 @@ def _(pd, playtest1_tester_data):
 
 
 @app.cell
-def _(combined_data):
-    # # drop end of level
-    level_data_trim_x = combined_data[combined_data['x'] >= -7500]
-    level_data_trim_z = level_data_trim_x[level_data_trim_x['z'] >= -70]
-    level_data = level_data_trim_z
-    return (level_data,)
-
-
-@app.cell
-def _():
-    # speedrun_data = level_data.query
+def _(mo):
+    mo.md(r"""
+    ### Showcase of raw data
+    """)
     return
 
 
@@ -80,6 +73,52 @@ def _(combined_data, px):
     uncleanGraph.update_xaxes(autorange="reversed")   
     uncleanGraph
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### Drop data from players who fell off the map
+    """)
+    return
+
+
+@app.cell
+def _(combined_data):
+    level_data_trim_z = combined_data[combined_data['z'] >= -70]
+    return (level_data_trim_z,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### Completion data
+    """)
+    return
+
+
+@app.cell
+def _(level_data_trim_z):
+    speedrun_data = level_data_trim_z.keys # not working
+
+    print(speedrun_data)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### Drop data from people who have passed the end of the level
+    """)
+    return
+
+
+@app.cell
+def _(level_data_trim_z):
+    level_data_trim_x = level_data_trim_z[level_data_trim_z['x'] >= -7500]
+
+    level_data = level_data_trim_x
+    return (level_data,)
 
 
 @app.cell
