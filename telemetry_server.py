@@ -9,7 +9,7 @@ class TelemetryHandler(BaseHTTPRequestHandler):
     Telemetry server for UE5 Playtest Data Collection
     Receives JSON events from multiple clients and writes to single JSONL file
     """
-    DATA_FILE = Path("telemetry_data") / "telemetry.jsonl"
+    DATA_FILE = Path("data") / "telemetry.jsonl"
     _write_lock = threading.Lock()
     _event_count = 0
     
@@ -44,7 +44,7 @@ class TelemetryHandler(BaseHTTPRequestHandler):
                 
                 # Periodic logging (every 50 events to reduce spam)
                 event_type = data.get('event_type', 'unknown')
-                if TelemetryHandler._event_count % 50 == 0:
+                if TelemetryHandler._event_count % 10 == 0:
                     print(f"[{TelemetryHandler._event_count}] Received {event_type} from "
                           f"{data.get('machine_id', 'unknown')} session {data.get('session_id', 'unknown')}")
                 
@@ -90,3 +90,4 @@ def run_server(port=8080):
 
 if __name__ == '__main__':
     run_server()
+

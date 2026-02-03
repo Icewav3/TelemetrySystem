@@ -17,25 +17,27 @@ def _():
 
 @app.cell
 def _(pd):
-    data = pd.read_json("telemetry_data/telemetry.jsonl", lines=True)
-    return (data,)
+    testing_data= pd.read_json("data/test_data/telemetry.jsonl", lines=True)
+    playtest1_dev_data= pd.read_json("data/playtest1_data/telemetry_testers.jsonl", lines=True)
+    playtest1_tester_data= pd.read_json("data/playtest1_data/telemetry_testers.jsonl", lines=True)
+    return (playtest1_tester_data,)
 
 
 @app.cell
-def _(data):
-    data
+def _(playtest1_tester_data):
+    playtest1_tester_data
     return
 
 
 @app.cell
-def _(data):
-    data['player_pos']
+def _(playtest1_tester_data):
+    playtest1_tester_data['player_pos']
     return
 
 
 @app.cell
-def _(data, pd):
-    clean_data = data.dropna(subset=['player_pos'])
+def _(pd, playtest1_tester_data):
+    clean_data = playtest1_tester_data.dropna(subset=['player_pos'])
 
     # Extract x and y
     pos_df = clean_data['player_pos'].apply(pd.Series)
