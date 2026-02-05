@@ -16,6 +16,14 @@ def _():
 
 
 @app.cell
+def _(mo):
+    mo.md(r"""
+    # Define data sources
+    """)
+    return
+
+
+@app.cell
 def _(pd):
     testing_data= pd.read_json("data/test_data/telemetry.jsonl", lines=True)
     playtest1_dev_data= pd.read_json("data/playtest1_data/telemetry_testers.jsonl", lines=True)
@@ -92,16 +100,15 @@ def _(combined_data):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ### Completion data
+    ### Temporal data
     """)
     return
 
 
 @app.cell
 def _(level_data_trim_z):
-    speedrun_data = level_data_trim_z.keys # not working
-
-    print(speedrun_data)
+    temporal_chart = level_data_trim_z
+    temporal_chart
     return
 
 
@@ -119,6 +126,34 @@ def _(level_data_trim_z):
 
     level_data = level_data_trim_x
     return (level_data,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### Sort data
+    """)
+    return
+
+
+@app.cell
+def _(level_data):
+    sorted_level_data = level_data.sort_values(["session_id", "game_time"])
+    return (sorted_level_data,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### Ensure all data is in correct time sequence
+    """)
+    return
+
+
+@app.cell
+def _(sorted_level_data):
+    sorted_level_data.groupby("session_id")["game_time"].diff().dropna().lt(0).sum()
+    return
 
 
 @app.cell
