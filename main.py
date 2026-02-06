@@ -1,51 +1,87 @@
 import marimo
 
-__generated_with = "0.19.7"
+__generated_with = "0.19.8"
 app = marimo.App(width="full")
 
 
 @app.cell
 def _():
+    import marimo as mo
     import pandas as pd
+    import polars as pl
     import plotly.express as px
     import plotly.graph_objects as go
     import numpy as np
     import altair as alt
-    import marimo as mo
-    return mo, pd, px
+    from pathlib import Path
+
+    return Path, mo, np, pd, px
 
 
 @app.cell
 def _(mo):
-    mo.md(r"""
-    # Define data sources
+    mo.md("""
+    # Playtester Telemetry Analysis
+    This notebook analyzes telemetry data collected from playtesters in order to understand player behavior and identify potential issues within the game level.
     """)
     return
 
 
 @app.cell
-def _(pd):
-    testing_data= pd.read_json("data/test_data/telemetry.jsonl", lines=True)
-    playtest1_dev_data= pd.read_json("data/playtest1_data/telemetry_testers.jsonl", lines=True)
-    playtest1_tester_data= pd.read_json("data/playtest1_data/telemetry_testers.jsonl", lines=True)
-    return (playtest1_tester_data,)
+def _(Path, mo):
+    data_dir = Path("data")
+
+    available_files = []
+    if data_dir.exists():
+        for subdir in data_dir.iterdir():
+            if subdir.is_dir():
+                for file in subdir.glob("*.jsonl"):
+                    available_files.append(str(file))
+
+    if not available_files:
+        available_files = [
+            "data/test_data/telemetry.jsonl",
+            "data/playtest1_data/telemetry_testers.jsonl"
+        ]
+
+    file_selector = mo.ui.dropdown(
+        options=available_files,
+        value=available_files[0] if available_files else None,
+        label="Select data file",
+        full_width=True
+    )
+
+    file_selector
+    return (file_selector,)
 
 
 @app.cell
-def _(playtest1_tester_data):
-    playtest1_tester_data
+def _(file_selector, mo):
+    mo.stop(not file_selector.value, mo.md("Please select a data file to begin analysis"))
     return
 
 
 @app.cell
-def _(playtest1_tester_data):
-    playtest1_tester_data['player_pos']
+def _(file_selector, pd):
+    raw_data = pd.read_json(file_selector.value, lines=True)
+    return (raw_data,)
+
+
+@app.cell
+def _(mo, raw_data):
+    mo.md(f"""
+    ## Data Summary
+
+    - **Total records**: {len(raw_data):,}
+    - **Unique sessions**: {raw_data['session_id'].nunique()}
+    - **Time range**: {raw_data['game_time'].min():.1f}s - {raw_data['game_time'].max():.1f}s
+    """)
     return
 
 
 @app.cell
-def _(pd, playtest1_tester_data):
-    clean_data = playtest1_tester_data.dropna(subset=['player_pos'])
+def _(pd, raw_data):
+    clean_data = raw_data.dropna(subset=['player_pos'])
 
     # Extract x and y
     pos_df = clean_data['player_pos'].apply(pd.Series)
@@ -57,6 +93,16 @@ def _(pd, playtest1_tester_data):
 
     combined_data
     return (combined_data,)
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ## Data Cleaning Pipeline
+
+    Removing outliers and invalid data points.
+    """)
+    return
 
 
 @app.cell
@@ -173,107 +219,50 @@ def _(level_data, px):
 
 
 @app.cell
-def _():
-    # dwell_data = combined_data.copy()
-    # dwell_data['x_zone'] = pd.cut(dwell_data['x'], bins=10)
-    # dwell_data['z_zone'] = pd.cut(dwell_data['z'], bins=10)
-
-    # dwell = dwell_data.groupby(['x_zone', 'z_zone']).size().reset_index(name='dwell_time')
-    # dwell['x_mid'] = dwell['x_zone'].apply(lambda x: x.mid)
-    # dwell['z_mid'] = dwell['z_zone'].apply(lambda x: x.mid)
-
-    # fig5 = alt.Chart(dwell).mark_rect().encode(
-    #     x=alt.X('x_mid:Q', title='X Zone (Right)'),
-    #     y=alt.Y('z_mid:Q', title='Z Zone (Up)'),
-    #     color=alt.Color('dwell_time:Q', scale=alt.Scale(scheme='orangered'), title='Frames Spent'),
-    #     tooltip=['x_mid:Q', 'z_mid:Q', 'dwell_time:Q']
-    # ).properties(
-    #     width=700,
-    #     height=600,
-    #     title='Dwell Time Heatmap - Where Players Linger'
-    # )
-
-    # mo.ui.altair_chart(fig5)
-    return
-
-
-@app.cell
-def _():
-    # anim_data = level_data.copy()
-    # anim_data['relative_frame'] = anim_data.groupby('session_id')['frame'].transform(
-    #     lambda x: x - x.min()
-    # )
-    # anim_data = anim_data.sort_values(['session_id', 'relative_frame'])
-
-    # # Create cumulative dataset
-    # cumulative_data = []
-    # for frame in sorted(anim_data['relative_frame'].unique()):
-    #     # Get all data up to and including this frame for each session
-    #     frame_data = anim_data[anim_data['relative_frame'] <= frame].copy()
-    #     frame_data['animation_frame'] = frame  # All historical points 
-    #     cumulative_data.append(frame_data)
-
-    # cumulative_df = pd.concat(cumulative_data, ignore_index=True)
-
-    # # Now animate with the cumulative data
-    # fig2 = px.line(
-    #     cumulative_df,
-    #     x='x',
-    #     y='y',
-    #     animation_frame='animation_frame',
-    #     color='session_id',
-    #     line_group='session_id',
-    #     range_x=[anim_data['x'].min()-100, anim_data['x'].max()+100],
-    #     range_y=[anim_data['y'].min()-100, anim_data['y'].max()+100],
-    # )
-
-    # fig2.update_traces(
-    #     mode='markers+lines',
-    #     line=dict(width=2),
-    #     marker=dict(size=5, opacity=1.0),  # Full opacity for markers
-    #     opacity=0.4  # This applies to the line portion
-    # )
-
-    # # Override marker opacity to be full
-    # for trace in fig2.data:
-    #     trace.marker.opacity = 1.0
-
-    # fig2.update_layout(title='Animated Player Pathing with Trails', height=600)
-    # fig2.update_xaxes(autorange="reversed")   
-    # fig2
-    return
-
-
-@app.cell
 def _(mo):
-    mo.md(r"""
-    ### messing around
+    mo.md("""
+    ## Player Velocity Analysis
+
+    Shows where players speed up or slow down, helping identify challenging areas.
     """)
     return
 
 
 @app.cell
-def _():
-    # heatmap_data = combined_data.copy()
-    # heatmap_data['x_bin'] = pd.cut(heatmap_data['x'], bins=25)
-    # heatmap_data['y_bin'] = pd.cut(heatmap_data['y'], bins=25)
+def _(np, sorted_level_data):
+    velocity_data = sorted_level_data.copy()
 
-    # heat = heatmap_data.groupby(['x_bin', 'y_bin']).size().reset_index(name='count')
-    # heat['x_mid'] = heat['x_bin'].apply(lambda x: x.mid)
-    # heat['y_mid'] = heat['y_bin'].apply(lambda x: x.mid)
+    velocity_data['dx'] = velocity_data.groupby('session_id')['x'].diff()
+    velocity_data['dz'] = velocity_data.groupby('session_id')['z'].diff()
+    velocity_data['dt'] = velocity_data.groupby('session_id')['game_time'].diff()
 
-    # chart = alt.Chart(heat).mark_rect().encode(
-    #     x=alt.X('x_mid:Q', title='X Position'),
-    #     y=alt.Y('y_mid:Q', title='Y Position'),
-    #     color=alt.Color('count:Q', scale=alt.Scale(scheme='reds'), title='Activity'),
-    #     tooltip=['count:Q']
-    # ).properties(
-    #     width=700,
-    #     height=600,
-    #     title='Player Activity Heatmap'
-    # )
+    velocity_data['speed'] = np.sqrt(velocity_data['dx']**2 + velocity_data['dz']**2) / velocity_data['dt']
+    velocity_data['speed'] = velocity_data['speed'].replace([np.inf, -np.inf], np.nan)
+    velocity_data = velocity_data.dropna(subset=['speed'])
 
-    # mo.ui.altair_chart(chart)
+    velocity_data = velocity_data[velocity_data['speed'] < velocity_data['speed'].quantile(0.99)]
+
+    velocity_data
+    return (velocity_data,)
+
+
+@app.cell
+def _(px, velocity_data):
+    velocity_scatter = px.scatter(
+        velocity_data,
+        x='x',
+        y='z',
+        color='speed',
+        color_continuous_scale='Viridis',
+        title='Player Speed Throughout Level',
+        labels={'x': 'X Position', 'z': 'Z Position', 'speed': 'Speed (units/s)'},
+        opacity=0.6
+    )
+
+    velocity_scatter.update_layout(height=600)
+    velocity_scatter.update_xaxes(autorange="reversed")
+
+    velocity_scatter
     return
 
 
