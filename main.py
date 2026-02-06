@@ -210,7 +210,8 @@ def _(level_data, px):
     fig1.update_traces(
         mode='markers+lines', 
         marker=dict(size=5),
-        line=dict(width=1)
+        line=dict(width=1),
+        opacity=0.9
     )
     fig1.update_layout(height=600)
     fig1.update_xaxes(autorange="reversed")   
@@ -223,7 +224,7 @@ def _(mo):
     mo.md("""
     ## Player Velocity Analysis
 
-    Shows where players speed up or slow down, helping identify challenging areas.
+    Shows where players speed up or slow down which can show
     """)
     return
 
