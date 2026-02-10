@@ -33,22 +33,22 @@ def _(Path, mo):
 
     available_files = []
     if data_dir.exists():
-        for subdir in data_dir.iterdir():
-            if subdir.is_dir():
-                for file in subdir.glob("*.jsonl"):
-                    available_files.append(str(file))
+    	for subdir in data_dir.iterdir():
+    		if subdir.is_dir():
+    			for file in subdir.glob("*.jsonl"):
+    				available_files.append(str(file))
 
     if not available_files:
-        available_files = [
-            "data/test_data/telemetry.jsonl",
-            "data/playtest1_data/telemetry_testers.jsonl"
-        ]
+    	available_files = [
+    		"data/test_data/telemetry.jsonl",
+    		"data/playtest1_data/telemetry_testers.jsonl"
+    	]
 
     file_selector = mo.ui.dropdown(
-        options=available_files,
-        value=available_files[0] if available_files else None,
-        label="Select data file",
-        full_width=True
+    	options=available_files,
+    	value=available_files[0] if available_files else None,
+    	label="Select data file",
+    	full_width=True
     )
 
     file_selector
@@ -87,8 +87,8 @@ def _(pd, raw_data):
     pos_df = clean_data['player_pos'].apply(pd.Series)
     # merge extracted coordinates back into the original dataframe
     combined_data = pd.concat([
-        clean_data.drop('player_pos', axis=1).reset_index(drop=True),
-        pos_df.reset_index(drop=True)
+    	clean_data.drop('player_pos', axis=1).reset_index(drop=True),
+    	pos_df.reset_index(drop=True)
     ], axis=1)
 
     combined_data
@@ -116,12 +116,12 @@ def _(mo):
 @app.cell
 def _(combined_data, px):
     uncleanGraph = px.line(combined_data, x='x', y='z', color='session_id', 
-                   title="Player Positions by Session ID", 
-                   labels={"x": "X Coordinate", "z": "Z Coordinate"})
+    			   title="Player Positions by Session ID", 
+    			   labels={"x": "X Coordinate", "z": "Z Coordinate"})
     uncleanGraph.update_traces(
-        mode='markers+lines', 
-        marker=dict(size=5),
-        line=dict(width=1)
+    	mode='markers+lines', 
+    	marker=dict(size=5),
+    	line=dict(width=1)
     )
     uncleanGraph.update_layout(height=600)
     uncleanGraph.update_xaxes(autorange="reversed")   
@@ -205,13 +205,13 @@ def _(sorted_level_data):
 @app.cell
 def _(level_data, px):
     fig1 = px.line(level_data, x='x', y='z', color='session_id', 
-                   title="Player Positions by Session ID", 
-                   labels={"x": "X Coordinate", "z": "Z Coordinate"})
+    			   title="Player Positions by Session ID", 
+    			   labels={"x": "X Coordinate", "z": "Z Coordinate"})
     fig1.update_traces(
-        mode='markers+lines', 
-        marker=dict(size=5),
-        line=dict(width=1),
-        opacity=0.9
+    	mode='markers+lines', 
+    	marker=dict(size=5),
+    	line=dict(width=1),
+    	opacity=0.9
     )
     fig1.update_layout(height=600)
     fig1.update_xaxes(autorange="reversed")   
@@ -250,14 +250,14 @@ def _(np, sorted_level_data):
 @app.cell
 def _(px, velocity_data):
     velocity_scatter = px.scatter(
-        velocity_data,
-        x='x',
-        y='z',
-        color='speed',
-        color_continuous_scale='Viridis',
-        title='Player Speed Throughout Level',
-        labels={'x': 'X Position', 'z': 'Z Position', 'speed': 'Speed (units/s)'},
-        opacity=0.6
+    	velocity_data,
+    	x='x',
+    	y='z',
+    	color='speed',
+    	color_continuous_scale='Viridis',
+    	title='Player Speed Throughout Level',
+    	labels={'x': 'X Position', 'z': 'Z Position', 'speed': 'Speed (units/s)'},
+    	opacity=0.6
     )
 
     velocity_scatter.update_layout(height=600)
