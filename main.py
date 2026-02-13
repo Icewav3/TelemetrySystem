@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.19.9"
+__generated_with = "0.19.11"
 app = marimo.App(width="full")
 
 
@@ -8,7 +8,6 @@ app = marimo.App(width="full")
 def _():
     import marimo as mo
     import pandas as pd
-    import polars as pl
     import plotly.express as px
     import plotly.graph_objects as go
     import numpy as np
@@ -76,6 +75,21 @@ def _(mo, raw_data):
     - **Unique sessions**: {raw_data['session_id'].nunique()}
     - **Time range**: {raw_data['game_time'].min():.1f}s - {raw_data['game_time'].max():.1f}s
     """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Data per user
+    """)
+    return
+
+
+@app.cell
+def _(raw_data):
+    data_per_user = raw_data['user_name'].value_counts()
+    data_per_user
     return
 
 
