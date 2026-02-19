@@ -254,14 +254,14 @@ wheels = [
 
 [[package]]
 name = "marimo"
-version = "0.19.8"
+version = "0.19.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "docutils" },
     { name = "itsdangerous" },
     { name = "jedi" },
-    { name = "loro", marker = "python_full_version < '3.14'" },
+    { name = "loro" },
     { name = "markdown" },
     { name = "msgspec" },
     { name = "narwhals" },
@@ -275,9 +275,9 @@ dependencies = [
     { name = "uvicorn" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3f/45/f03fea720c7ebcc9e71ad4cee0b415448a484c7f94b2fe32e3c309328b43/marimo-0.19.8.tar.gz", hash = "sha256:8bf0440bc6cf8e0bea976cab4b549fcacdbd117d230a9dddc59562f024f42254", size = 38141134, upload-time = "2026-02-05T22:00:36.164Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/06/31/aa12298afce0c7cf6bc0d8ffe664b4cfb295451f9029ca7a461c6e30390d/marimo-0.19.11.tar.gz", hash = "sha256:1f65a19f9dced82ae2d041dbe31b3f47ba16993f6411d41ba526b3b322abd948", size = 38203731, upload-time = "2026-02-12T18:37:49.536Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bc/23/516f3b49f6e1ac6c0faafc4bea46bb8cc480f6d9dd78a537a743a0fc430e/marimo-0.19.8-py3-none-any.whl", hash = "sha256:0d1290bcb8144eec9e6688d23f6b983e9dfe23009f99bd96e2eb87d5a84fc1dd", size = 38552287, upload-time = "2026-02-05T22:00:39.577Z" },
+    { url = "https://files.pythonhosted.org/packages/47/d4/817cfdcf9636fc75036b9e0f7aa458c0bedec420d79768005ccfcf7fc9d8/marimo-0.19.11-py3-none-any.whl", hash = "sha256:4f98b677c89cada69c330e38f0747b4fca73cedb6f81b66832df3035ab8b6cff", size = 38609582, upload-time = "2026-02-12T18:37:53.954Z" },
 ]
 
 [[package]]
@@ -801,7 +801,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "altair", specifier = ">=6.0.0" },
-    { name = "marimo", specifier = ">=0.19.7" },
+    { name = "marimo", specifier = ">=0.19.10" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "plotly", specifier = ">=6.5.2" },
     { name = "polars", specifier = ">=1.38.0" },

@@ -14,7 +14,7 @@ def _():
     import altair as alt
     from pathlib import Path
 
-    return Path, mo, np, pd, px
+    return Path, alt, mo, np, pd, px
 
 
 @app.cell
@@ -32,22 +32,18 @@ def _(Path, mo):
 
     available_files = []
     if data_dir.exists():
-    	for subdir in data_dir.iterdir():
-    		if subdir.is_dir():
-    			for file in subdir.glob("*.jsonl"):
-    				available_files.append(str(file))
-
+        for subdir in data_dir.iterdir():
+            if subdir.is_dir():
+                for file in subdir.glob("*.jsonl"):
+                    available_files.append(str(file))
     if not available_files:
-    	available_files = [
-    		"data/test_data/telemetry.jsonl",
-    		"data/playtest1_data/telemetry_testers.jsonl"
-    	]
+        raise FileNotFoundError("The 'data' directory is empty")
 
     file_selector = mo.ui.dropdown(
-    	options=available_files,
-    	value=available_files[0] if available_files else None,
-    	label="Select data file",
-    	full_width=True
+        options=available_files,
+        value=available_files[0] if available_files else None,
+        label="Select data file",
+        full_width=True
     )
 
     file_selector
@@ -64,6 +60,29 @@ def _(file_selector, mo):
 def _(file_selector, pd):
     raw_data = pd.read_json(file_selector.value, lines=True)
     return (raw_data,)
+
+
+@app.cell
+def _(Path, file_selector):
+    import json
+
+    _config_path = Path(file_selector.value).parent / "playtest.json"
+
+    if not _config_path.exists():
+        raise FileNotFoundError(f"No playtest.json found in {_config_path.parent}")
+
+    with open(_config_path) as f:
+        _config = json.load(f)
+
+    LEVEL_BOUNDS = _config["bounds"]
+    return (LEVEL_BOUNDS,)
+
+
+@app.cell
+def _(LEVEL_BOUNDS):
+    Z_MIN = LEVEL_BOUNDS["z_min"]
+    X_MIN = LEVEL_BOUNDS["x_min"]
+    return X_MIN, Z_MIN
 
 
 @app.cell
@@ -88,8 +107,9 @@ def _(mo):
 
 @app.cell
 def _(raw_data):
-    data_per_user = raw_data['user_name'].value_counts()
-    data_per_user
+    if 'user_name' in raw_data.columns:
+        data_per_user = raw_data['user_name'].value_counts()
+        data_per_user
     return
 
 
@@ -101,8 +121,8 @@ def _(pd, raw_data):
     pos_df = clean_data['player_pos'].apply(pd.Series)
     # merge extracted coordinates back into the original dataframe
     combined_data = pd.concat([
-    	clean_data.drop('player_pos', axis=1).reset_index(drop=True),
-    	pos_df.reset_index(drop=True)
+        clean_data.drop('player_pos', axis=1).reset_index(drop=True),
+        pos_df.reset_index(drop=True)
     ], axis=1)
 
     combined_data
@@ -130,16 +150,24 @@ def _(mo):
 @app.cell
 def _(combined_data, px):
     uncleanGraph = px.line(combined_data, x='x', y='z', color='session_id', 
-    			   title="Player Positions by Session ID", 
-    			   labels={"x": "X Coordinate", "z": "Z Coordinate"})
+                   title="Player Positions by Session ID", 
+                   labels={"x": "X Coordinate", "z": "Z Coordinate"})
     uncleanGraph.update_traces(
-    	mode='markers+lines', 
-    	marker=dict(size=5),
-    	line=dict(width=1)
+        mode='markers+lines', 
+        marker=dict(size=5),
+        line=dict(width=1)
     )
     uncleanGraph.update_layout(height=600)
     uncleanGraph.update_xaxes(autorange="reversed")   
     uncleanGraph
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Drop players who went out of bounds
+    """)
     return
 
 
@@ -152,8 +180,8 @@ def _(mo):
 
 
 @app.cell
-def _(combined_data):
-    level_data_trim_z = combined_data[combined_data['z'] >= -70]
+def _(Z_MIN, combined_data):
+    level_data_trim_z = combined_data[combined_data['z'] >= Z_MIN]
     return (level_data_trim_z,)
 
 
@@ -181,8 +209,8 @@ def _(mo):
 
 
 @app.cell
-def _(level_data_trim_z):
-    level_data_trim_x = level_data_trim_z[level_data_trim_z['x'] >= -7500]
+def _(X_MIN, level_data_trim_z):
+    level_data_trim_x = level_data_trim_z[level_data_trim_z['x'] >= X_MIN]
 
     level_data = level_data_trim_x
     return (level_data,)
@@ -219,13 +247,13 @@ def _(sorted_level_data):
 @app.cell
 def _(level_data, px):
     fig1 = px.line(level_data, x='x', y='z', color='session_id', 
-    			   title="Player Positions by Session ID", 
-    			   labels={"x": "X Coordinate", "z": "Z Coordinate"})
+                   title="Player Positions by Session ID", 
+                   labels={"x": "X Coordinate", "z": "Z Coordinate"})
     fig1.update_traces(
-    	mode='markers+lines', 
-    	marker=dict(size=5),
-    	line=dict(width=1),
-    	opacity=0.9
+        mode='markers+lines', 
+        marker=dict(size=5),
+        line=dict(width=1),
+        opacity=0.9
     )
     fig1.update_layout(height=600)
     fig1.update_xaxes(autorange="reversed")   
@@ -264,20 +292,156 @@ def _(np, sorted_level_data):
 @app.cell
 def _(px, velocity_data):
     velocity_scatter = px.scatter(
-    	velocity_data,
-    	x='x',
-    	y='z',
-    	color='speed',
-    	color_continuous_scale='Viridis',
-    	title='Player Speed Throughout Level',
-    	labels={'x': 'X Position', 'z': 'Z Position', 'speed': 'Speed (units/s)'},
-    	opacity=0.6
+        velocity_data,
+        x='x',
+        y='z',
+        color='speed',
+        color_continuous_scale='Viridis',
+        title='Player Speed Throughout Level',
+        labels={'x': 'X Position', 'z': 'Z Position', 'speed': 'Speed (units/s)'},
+        opacity=0.6
     )
 
     velocity_scatter.update_layout(height=600)
     velocity_scatter.update_xaxes(autorange="reversed")
 
     velocity_scatter
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Post Damage, Death and Username Analysis
+    """)
+    return
+
+
+app._unparsable_cell(
+    r"""
+    if
+    """,
+    name="_"
+)
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ## Damage & Death Analysis
+
+    New telemetry fields: `event_type`, `damage`, `health_before`, `health_after`, `damage_source`, `run_data`.
+    """)
+    return
+
+
+@app.cell
+def _(combined_data, pd):
+    # Expand run_data dict into columns
+    run_cols = combined_data['run_data'].apply(pd.Series)
+    enriched_data = pd.concat([
+        combined_data.drop('run_data', axis=1).reset_index(drop=True),
+        run_cols.reset_index(drop=True)
+    ], axis=1)
+    enriched_data
+    return (enriched_data,)
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ### Damage Events by Source
+
+    Each point is a damage event. Color indicates the source — useful for identifying which hazards/enemies create danger in which zones.
+    """)
+    return
+
+
+@app.cell
+def _(enriched_data, mo, px):
+    damage_events = enriched_data[
+        (enriched_data['event_type'] == 'damage') & enriched_data['damage_source'].notna()
+    ]
+
+    damage_scatter = px.scatter(
+        damage_events,
+        x='x',
+        y='z',
+        color='damage_source',
+        size='damage',
+        opacity=0.7,
+        title='Damage Events by Source',
+        labels={'x': 'X Position', 'z': 'Z Position', 'damage_source': 'Source'},
+        hover_data=['session_id', 'health_before', 'health_after', 'game_time']
+    )
+    damage_scatter.update_layout(height=600)
+    damage_scatter.update_xaxes(autorange="reversed")
+    mo.ui.plotly(damage_scatter)
+    return (damage_events,)
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ### Damage by Source
+
+    Which enemy or hazard is dealing the most damage overall? Use this to prioritize balance tuning.
+    """)
+    return
+
+
+@app.cell
+def _(alt, damage_events, mo):
+    damage_by_source = (
+        damage_events.groupby('damage_source')['damage']
+        .sum()
+        .reset_index()
+        .rename(columns={'damage': 'total_damage'})
+        .sort_values('total_damage', ascending=False)
+    )
+
+    damage_bar = (
+        alt.Chart(damage_by_source)
+        .mark_bar()
+        .encode(
+            x=alt.X('total_damage:Q', title='Total Damage Dealt'),
+            y=alt.Y('damage_source:N', sort='-x', title='Damage Source'),
+            color=alt.Color('damage_source:N', legend=None),
+            tooltip=['damage_source', 'total_damage']
+        )
+        .properties(title='Total Damage by Source', width=600, height=300)
+    )
+    mo.ui.altair_chart(damage_bar)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ### ❤️ Player Health Over Time
+
+    Health attrition curves per session. Dips reveal dangerous sections; flat lines suggest players aren't taking damage (too easy) or are already dead.
+    """)
+    return
+
+
+@app.cell
+def _(enriched_data, mo, px):
+    health_events = enriched_data[
+        enriched_data['health_after'].notna()
+    ].sort_values(['session_id', 'game_time'])
+
+    health_fig = px.line(
+        health_events,
+        x='game_time',
+        y='health_after',
+        color='session_id',
+        title='Health Over Time by Session',
+        labels={'game_time': 'Game Time (s)', 'health_after': 'Health'},
+        hover_data=['damage_source', 'damage']
+    )
+    health_fig.update_layout(height=500)
+    mo.ui.plotly(health_fig)
     return
 
 
