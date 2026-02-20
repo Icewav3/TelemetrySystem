@@ -66,10 +66,10 @@ def _(file_selector, pd):
 def _(Path, file_selector):
     import json
 
-    _config_path = Path(file_selector.value).parent / "playtest.json"
+    _config_path = Path(file_selector.value).parent / "playtest_metadata.json"
 
     if not _config_path.exists():
-        raise FileNotFoundError(f"No playtest.json found in {_config_path.parent}")
+        raise FileNotFoundError(f"No playtest_metadata.json found in {_config_path.parent}")
 
     with open(_config_path) as f:
         _config = json.load(f)
@@ -80,9 +80,11 @@ def _(Path, file_selector):
 
 @app.cell
 def _(LEVEL_BOUNDS):
-    Z_MIN = LEVEL_BOUNDS["z_min"]
     X_MIN = LEVEL_BOUNDS["x_min"]
-    return X_MIN, Z_MIN
+    X_MAX = LEVEL_BOUNDS["x_max"]
+    Z_MIN = LEVEL_BOUNDS["z_min"]
+    Z_MAX = LEVEL_BOUNDS["z_max"]
+    return X_MAX, X_MIN, Z_MAX, Z_MIN
 
 
 @app.cell
@@ -180,8 +182,8 @@ def _(mo):
 
 
 @app.cell
-def _(Z_MIN, combined_data):
-    level_data_trim_z = combined_data[combined_data['z'] >= Z_MIN]
+def _(Z_MAX, Z_MIN, combined_data):
+    level_data_trim_z = combined_data[combined_data['z'].between(Z_MIN, Z_MAX)]
     return (level_data_trim_z,)
 
 
@@ -209,9 +211,8 @@ def _(mo):
 
 
 @app.cell
-def _(X_MIN, level_data_trim_z):
-    level_data_trim_x = level_data_trim_z[level_data_trim_z['x'] >= X_MIN]
-
+def _(X_MAX, X_MIN, level_data_trim_z):
+    level_data_trim_x = level_data_trim_z[level_data_trim_z['x'].between(X_MIN, X_MAX)]
     level_data = level_data_trim_x
     return (level_data,)
 
@@ -247,7 +248,7 @@ def _(sorted_level_data):
 @app.cell
 def _(level_data, px):
     fig1 = px.line(level_data, x='x', y='z', color='session_id', 
-                   title="Player Positions by Session ID", 
+                   title="Player Positions by Session ID over Time", 
                    labels={"x": "X Coordinate", "z": "Z Coordinate"})
     fig1.update_traces(
         mode='markers+lines', 
@@ -418,7 +419,7 @@ def _(alt, damage_events, mo):
 @app.cell
 def _(mo):
     mo.md("""
-    ### ❤️ Player Health Over Time
+    ### Player Health Over Time
 
     Health attrition curves per session. Dips reveal dangerous sections; flat lines suggest players aren't taking damage (too easy) or are already dead.
     """)

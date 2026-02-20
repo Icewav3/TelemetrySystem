@@ -1,0 +1,9 @@
+{
+  "info": "Second playtest, entirely internal - has damage and death logging now, as well as username.",
+  "bounds": {
+    "x_min": -15000,
+    "x_max": 2000,
+    "z_min": -70,
+    "z_max": 2500
+  }
+}
