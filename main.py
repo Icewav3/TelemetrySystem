@@ -318,12 +318,13 @@ def _(mo):
     return
 
 
-app._unparsable_cell(
-    r"""
-    if
-    """,
-    name="_"
-)
+@app.cell
+def _(combined_data, mo):
+
+    if not combined_data['damage'].sum() and not combined_data['death'].sum():
+        print("No damage or death events detected. Stopping monitoring.")
+        mo.stop()
+    return
 
 
 @app.cell
