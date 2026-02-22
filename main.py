@@ -102,7 +102,7 @@ def _(mo, raw_data):
 @app.cell
 def _(mo):
     mo.md(r"""
-    Data per user
+    ## Telemetry Events recieved per user
     """)
     return
 
@@ -111,7 +111,17 @@ def _(mo):
 def _(raw_data):
     if 'user_name' in raw_data.columns:
         data_per_user = raw_data['user_name'].value_counts()
-        data_per_user
+    else:
+        data_per_user = None
+    data_per_user
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Preview of the raw data
+    """)
     return
 
 
@@ -144,7 +154,7 @@ def _(mo):
 @app.cell
 def _(mo):
     mo.md(r"""
-    ### Showcase of raw data
+    ### Showcase of what raw data graphed looks like
     """)
     return
 
@@ -231,17 +241,21 @@ def _(level_data):
     return (sorted_level_data,)
 
 
-@app.cell
-def _(mo):
-    mo.md(r"""
+@app.cell(hide_code=True)
+def _(mo, sorted_level_data):
+    mo.md(f"""
     ### Ensure all data is in correct time sequence
+
+    - **Time sequence violations**: {sorted_level_data.groupby("session_id")["game_time"].diff().dropna().lt(0).sum()}
     """)
     return
 
 
-@app.cell
-def _(sorted_level_data):
-    sorted_level_data.groupby("session_id")["game_time"].diff().dropna().lt(0).sum()
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # Player Pathing visualizaton
+    """)
     return
 
 
@@ -267,7 +281,7 @@ def _(mo):
     mo.md("""
     ## Player Velocity Analysis
 
-    Shows where players speed up or slow down which can show
+    Shows where players speed up or slow down
     """)
     return
 
@@ -313,14 +327,13 @@ def _(px, velocity_data):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Post Damage, Death and Username Analysis
+    # Damage and Death Analysis
     """)
     return
 
 
 @app.cell
 def _(combined_data, mo):
-
     if not combined_data['damage'].sum() and not combined_data['death'].sum():
         print("No damage or death events detected. Stopping monitoring.")
         mo.stop()
@@ -332,7 +345,7 @@ def _(mo):
     mo.md("""
     ## Damage & Death Analysis
 
-    New telemetry fields: `event_type`, `damage`, `health_before`, `health_after`, `damage_source`, `run_data`.
+    Using the new telemetry fields: `event_type`, `damage`, `health_before`, `health_after`, `damage_source`, `run_data`.
     """)
     return
 
@@ -354,7 +367,7 @@ def _(mo):
     mo.md("""
     ### Damage Events by Source
 
-    Each point is a damage event. Color indicates the source — useful for identifying which hazards/enemies create danger in which zones.
+    Each point is a damage event. Color coding is repersentative of source, while size repersents the amount of damage taken.
     """)
     return
 
@@ -387,7 +400,7 @@ def _(mo):
     mo.md("""
     ### Damage by Source
 
-    Which enemy or hazard is dealing the most damage overall? Use this to prioritize balance tuning.
+    Which enemy or hazard is dealing the most damage overall?
     """)
     return
 
@@ -422,7 +435,9 @@ def _(mo):
     mo.md("""
     ### Player Health Over Time
 
-    Health attrition curves per session. Dips reveal dangerous sections; flat lines suggest players aren't taking damage (too easy) or are already dead.
+    This shows how the player's health decreases over the duration of their run.
+
+    **IMPORTANT NOTE:** This does NOT correspond to position in the level, this is over time.
     """)
     return
 
