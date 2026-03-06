@@ -5,7 +5,7 @@
             "label": "uv: sync dependencies",
             "type": "shell",
             "command": "uv",
-            "args": ["sync"],
+            "args": ["sync", "--link-mode", "copy"],
             "problemMatcher": [],
             "presentation": {
                 "reveal": "silent"

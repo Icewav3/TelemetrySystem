@@ -2,5 +2,13 @@
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
     "marimo.marimoPath": "uv run marimo",
     "marimo.sandbox": false,
-    "python-envs.pythonProjects": []
-}
+    
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "*.jsonl"
+      ],
+      "url": "./telemetry.schema.json"
+    }
+  ]
+}   

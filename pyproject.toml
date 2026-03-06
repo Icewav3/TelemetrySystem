@@ -8,6 +8,7 @@ dependencies = [
     "altair>=6.0.0",
     "marimo>=0.19.10",
     "pandas>=3.0.0",
+    "pandoc>=2.4",
     "plotly>=6.5.2",
     "polars>=1.38.0",
     "pyzmq>=27.1.0",

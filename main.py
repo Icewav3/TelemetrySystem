@@ -194,6 +194,7 @@ def _(mo):
 @app.cell
 def _(Z_MAX, Z_MIN, combined_data):
     level_data_trim_z = combined_data[combined_data['z'].between(Z_MIN, Z_MAX)]
+    level_data_trim_z
     return (level_data_trim_z,)
 
 
@@ -224,6 +225,7 @@ def _(mo):
 def _(X_MAX, X_MIN, level_data_trim_z):
     level_data_trim_x = level_data_trim_z[level_data_trim_z['x'].between(X_MIN, X_MAX)]
     level_data = level_data_trim_x
+    level_data
     return (level_data,)
 
 
@@ -238,6 +240,7 @@ def _(mo):
 @app.cell
 def _(level_data):
     sorted_level_data = level_data.sort_values(["session_id", "game_time"])
+    sorted_level_data
     return (sorted_level_data,)
 
 
@@ -299,8 +302,6 @@ def _(np, sorted_level_data):
     velocity_data = velocity_data.dropna(subset=['speed'])
 
     velocity_data = velocity_data[velocity_data['speed'] < velocity_data['speed'].quantile(0.99)]
-
-    velocity_data
     return (velocity_data,)
 
 
@@ -358,7 +359,6 @@ def _(combined_data, pd):
         combined_data.drop('run_data', axis=1).reset_index(drop=True),
         run_cols.reset_index(drop=True)
     ], axis=1)
-    enriched_data
     return (enriched_data,)
 
 

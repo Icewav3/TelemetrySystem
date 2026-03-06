@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Unreal Engine Telemetry Event",
+  "description": "Schema for all telemetry events sent from the TelemetryPlugin.",
+  "type": "object",
+  "discriminator": {
+    "propertyName": "event_type"
+  },
+  "properties": {
+    "machine_id": {
+      "description": "Identifier for the machine sending the event (computer name).",
+      "type": "string"
+    },
+    "session_id": {
+      "description": "Unique identifier for the game session.",
+      "type": "string"
+    },
+    "user_name": {
+      "description": "The OS username of the player.",
+      "type": "string"
+    },
+    "event_type": {
+      "description": "The type of event being logged.",
+      "type": "string",
+      "enum": [
+        "session_start",
+        "session_end",
+        "run_start",
+        "run_end",
+        "position",
+        "damage",
+        "death"
+      ]
+    },
+    "frame": {
+      "description": "A sequentially increasing counter for ordering events within a session.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "game_time": {
+      "description": "The in-game time in seconds when the event occurred.",
+      "type": "number"
+    },
+    "run_data": {
+      "description": "Contextual data about the current gameplay run.",
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "description": "Unique identifier for this specific gameplay run.",
+          "type": "string"
+        },
+        "run_start_time": {
+          "description": "Game time in seconds when the run began.",
+          "type": "number"
+        },
+        "run_end_time": {
+          "description": "Game time in seconds when the run ended. 0 if the run is still active.",
+          "type": "number"
+        },
+        "run_total_time": {
+          "description": "Total duration of the run in seconds. 0 if the run is still active.",
+          "type": "number"
+        },
+        "end_reason": {
+          "description": "The reason the run concluded (e.g., 'death', 'victory', 'quit'). Empty if active.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_start_time",
+        "run_end_time",
+        "run_total_time",
+        "end_reason"
+      ]
+    }
+  },
+  "required": [
+    "machine_id",
+    "session_id",
+    "user_name",
+    "event_type",
+    "frame",
+    "game_time",
+    "run_data"
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "event_type": { "const": "session_start" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "session_end" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "run_start" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "run_end" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "position" },
+        "player_pos": { "$ref": "#/definitions/position" }
+      },
+      "required": ["player_pos"]
+    },
+    {
+      "properties": {
+        "event_type": { "const": "damage" },
+        "damage": {
+          "description": "The amount of damage taken.",
+          "type": "number"
+        },
+        "health_before": {
+          "description": "Player's health before the damage was applied.",
+          "type": "number"
+        },
+        "health_after": {
+          "description": "Player's health after the damage was applied.",
+          "type": "number"
+        },
+        "damage_source": {
+          "description": "The source of the damage (e.g., 'enemy_type_A', 'fall_damage').",
+          "type": "string"
+        },
+        "player_pos": { "$ref": "#/definitions/position" }
+      },
+      "required": [
+        "damage",
+        "health_before",
+        "health_after",
+        "damage_source",
+        "player_pos"
+      ]
+    },
+    {
+      "properties": {
+        "event_type": { "const": "death" },
+        "cause": {
+          "description": "The cause of the player's death (e.g., 'enemy', 'fall_damage').",
+          "type": "string"
+        },
+        "player_pos": { "$ref": "#/definitions/position" }
+      },
+      "required": ["cause", "player_pos"]
+    }
+  ],
+  "definitions": {
+    "position": {
+      "description": "Represents a 3D coordinate in the game world.",
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      },
+      "required": ["x", "y", "z"]
+    }
+  }
+}
