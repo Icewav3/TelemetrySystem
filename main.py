@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.19.11"
+__generated_with = "0.20.4"
 app = marimo.App(width="full")
 
 
@@ -63,18 +63,24 @@ def _(file_selector, pd):
 
 
 @app.cell
-def _(Path, file_selector):
+def _(Path, file_selector, mo):
     import json
 
     _config_path = Path(file_selector.value).parent / "playtest_metadata.json"
 
     if not _config_path.exists():
-        raise FileNotFoundError(f"No playtest_metadata.json found in {_config_path.parent}")
-
-    with open(_config_path) as f:
-        _config = json.load(f)
-
-    LEVEL_BOUNDS = _config["bounds"]
+        mo.output.append(mo.callout("No metadata found, setting bounds absurdly large", kind="warn"))
+        LEVEL_BOUNDS = {
+        "x_min": -99999999999999,
+        "x_max": 99999999999999,
+        "z_min": -99999999999999,
+        "z_max": 99999999999999
+      }
+    else:
+        with open(_config_path) as f:
+            _config = json.load(f)
+    
+        LEVEL_BOUNDS = _config["bounds"]
     return (LEVEL_BOUNDS,)
 
 
@@ -96,6 +102,26 @@ def _(mo, raw_data):
     - **Unique sessions**: {raw_data['session_id'].nunique()}
     - **Time range**: {raw_data['game_time'].min():.1f}s - {raw_data['game_time'].max():.1f}s
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, raw_data):
+    mo.md(f"""
+    ## Debuging Info
+    - **Duplicate events**: {raw_data.duplicated(subset=["game_time"], keep="first").sum()}
+    """)
+    return
+
+
+@app.cell
+def _(mo, raw_data):
+    # Filter for only the times that appear more than once
+    counts = raw_data['game_time'].value_counts()
+    duplicates_report = counts[counts > 1]
+
+    # In marimo, this looks great in a table:
+    mo.ui.table(duplicates_report.reset_index())
     return
 
 
