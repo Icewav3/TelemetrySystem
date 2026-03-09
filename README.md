@@ -33,6 +33,8 @@
     - [ ] Test locally
     - [ ] Update JSON schema
 - [ ] Kyle hoping for framerate logging
+- [ ] Collect info on weapons used/interacted with
+- [ ] Collect first interactions (e.g. first attack, first jump)
 
 #### Networking:
 - Aiden has the domain IronRise - could potentially host endpoint to reroute data via that.
