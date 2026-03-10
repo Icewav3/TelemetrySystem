@@ -79,7 +79,7 @@ def _(Path, file_selector, mo):
     else:
         with open(_config_path) as f:
             _config = json.load(f)
-    
+
         LEVEL_BOUNDS = _config["bounds"]
     return (LEVEL_BOUNDS,)
 
@@ -108,8 +108,19 @@ def _(mo, raw_data):
 @app.cell(hide_code=True)
 def _(mo, raw_data):
     mo.md(f"""
-    ## Debuging Info
-    - **Duplicate events**: {raw_data.duplicated(subset=["game_time"], keep="first").sum()}
+    ## 🛠️ Debugging Info
+
+    ### Event Integrity
+    - **Total raw events**: {len(raw_data)}
+    - **Position events total**: {len(raw_data[raw_data["event_type"] == "position"])}
+    - **Duplicate position events** *(game_time appears more than once)*: {raw_data[raw_data["event_type"] == "position"].groupby("game_time").size().gt(1).sum()}
+    - **Orphaned position events** *(game_time appears exactly once — missing pair)*: {raw_data[raw_data["event_type"] == "position"].groupby("game_time").size().eq(1).sum()}
+    - **Over-fired position events** *(game_time appears 3+ times)*: {raw_data[raw_data["event_type"] == "position"].groupby("game_time").size().gt(2).sum()}
+
+    ### Session Health
+    - **Unique sessions**: {raw_data["session_id"].nunique()}
+    - **Unique machines**: {raw_data["machine_id"].nunique()}
+    - **Event types seen**: {sorted(raw_data["event_type"].unique().tolist())}
     """)
     return
 

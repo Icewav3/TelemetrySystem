@@ -23,9 +23,17 @@
 #### Marimo Visualization issues:
 ###### Replacements
 - [ ] change framecount to event_order
-- [ ] exclude PIE data
+###### Additions
+- [ ] Improve metadata system
+    - [ ] change from setting massive bounds if undefined in metadata to instead use boundless
+- [ ] Exclude PIE data
+###### Major Features
+- [ ] Split notebooks (or see if we can make them cleanly seperate without fresh runs)
+    - [ ] Debugging notebook (internal use)
+    - [ ] Annotation notebook (for manual data cleaning)
+    - [ ] Main visualization notebook (only pretty graphs, nothing technical)
 
-#### Features:
+#### C++ Telemetry Features:
 - [ ] Room logging
     - [ ] Test locally
     - [ ] Update JSON schema
