@@ -4,11 +4,16 @@
         {
             "label": "uv: sync dependencies",
             "type": "shell",
-            "command": "uv",
-            "args": ["sync", "--link-mode", "copy"],
+            "command": "uv sync",
             "problemMatcher": [],
             "presentation": {
-                "reveal": "silent"
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
+            },
+            "runOptions": {
+                "runOn": "folderOpen",
+                "instanceLimit": 1
             }
         }
     ]

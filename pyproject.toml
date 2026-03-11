@@ -14,3 +14,22 @@ dependencies = [
     "pyzmq>=27.1.0",
     "ruff>=0.15.2",
 ]
+
+[tool.marimo.save]
+autosave = "after_delay"
+autosave_delay = 1000
+format_on_save = true
+
+[tool.marimo.formatting]
+line_length = 88
+
+[tool.marimo.display]
+default_width = "medium"
+dataframes = "rich"
+
+[tool.marimo.runtime]
+auto_instantiate = true
+on_cell_change = "autorun"
+
+[tool.marimo.package_management]
+manager = "uv"
