@@ -1,14 +1,14 @@
 ### Todo:
 
-- [ ] Component refactor
+- [x] Component refactor
     - [x] C++ implementation (get working)
     - [x] Blueprint implementation (working)
-    - [ ] C++ implementation (polish pass)
-    - [ ] Testing and ensuring no edge cases
-- [ ] Resolve issue with subscribing to cates damage system
+    - [x] C++ implementation (polish pass)
+    - [x] Testing and ensuring no edge cases
+- [x] Resolve issue with subscribing to cates damage system
 
 #### Cleaning
-- [ ] Remove unused now redudant blueprint library functions that will be taken over by the new component.
+- [x] Remove unused now redudant blueprint library functions that will be taken over by the new component.
 
 #### JSON schema issues:
 
@@ -17,7 +17,7 @@
 - [ ] "framecount" --> "event_order"
 
 ###### Additions
-- [ ] "current_framerate" : int
+- [x] "current_framerate" : int
 - [ ] "current_room" : string
 
 #### Marimo Visualization issues:
@@ -36,10 +36,10 @@
 #### C++ Telemetry Features:
 - [ ] Room logging
     - [ ] Test locally
-    - [ ] Update JSON schema
-- [ ] PIE (play in editor) awareness
-    - [ ] Test locally
-    - [ ] Update JSON schema
+    - [x] Update JSON schema
+- [x] PIE (play in editor) awareness
+    - [x] Test locally
+    - [x] Update JSON schema
 - [ ] Kyle hoping for framerate logging
 - [ ] Collect info on weapons used/interacted with
 - [ ] Collect first interactions (e.g. first attack, first jump)
