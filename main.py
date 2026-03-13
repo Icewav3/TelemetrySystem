@@ -32,10 +32,8 @@ def _(Path, mo):
 
     available_files = []
     if data_dir.exists():
-        for subdir in data_dir.iterdir():
-            if subdir.is_dir():
-                for file in subdir.glob("*.jsonl"):
-                    available_files.append(str(file))
+        for file in data_dir.rglob("*.jsonl"):
+            available_files.append(str(file))
     if not available_files:
         raise FileNotFoundError("The 'data' directory is empty")
 
@@ -43,7 +41,7 @@ def _(Path, mo):
         options=available_files,
         value=available_files[0] if available_files else None,
         label="Select data file",
-        full_width=True
+        full_width=True,
     )
 
     file_selector
@@ -69,13 +67,15 @@ def _(Path, file_selector, mo):
     _config_path = Path(file_selector.value).parent / "playtest_metadata.json"
 
     if not _config_path.exists():
-        mo.output.append(mo.callout("No metadata found, setting bounds absurdly large", kind="warn"))
+        mo.output.append(
+            mo.callout("No metadata found, setting bounds absurdly large", kind="warn")
+        )
         LEVEL_BOUNDS = {
-        "x_min": -99999999999999,
-        "x_max": 99999999999999,
-        "z_min": -99999999999999,
-        "z_max": 99999999999999
-      }
+            "x_min": -99999999999999,
+            "x_max": 99999999999999,
+            "z_min": -99999999999999,
+            "z_max": 99999999999999,
+        }
     else:
         with open(_config_path) as f:
             _config = json.load(f)
@@ -99,8 +99,8 @@ def _(mo, raw_data):
     ## Data Summary
 
     - **Total records**: {len(raw_data):,}
-    - **Unique sessions**: {raw_data['session_id'].nunique()}
-    - **Time range**: {raw_data['game_time'].min():.1f}s - {raw_data['game_time'].max():.1f}s
+    - **Unique sessions**: {raw_data["session_id"].nunique()}
+    - **Time range**: {raw_data["game_time"].min():.1f}s - {raw_data["game_time"].max():.1f}s
     """)
     return
 
@@ -128,7 +128,7 @@ def _(mo, raw_data):
 @app.cell
 def _(mo, raw_data):
     # Filter for only the times that appear more than once
-    counts = raw_data['game_time'].value_counts()
+    counts = raw_data["game_time"].value_counts()
     duplicates_report = counts[counts > 1]
 
     # In marimo, this looks great in a table:
@@ -146,8 +146,8 @@ def _(mo):
 
 @app.cell
 def _(raw_data):
-    if 'user_name' in raw_data.columns:
-        data_per_user = raw_data['user_name'].value_counts()
+    if "user_name" in raw_data.columns:
+        data_per_user = raw_data["user_name"].value_counts()
     else:
         data_per_user = None
     data_per_user
@@ -164,15 +164,18 @@ def _(mo):
 
 @app.cell
 def _(pd, raw_data):
-    clean_data = raw_data.dropna(subset=['player_pos'])
+    clean_data = raw_data.dropna(subset=["player_pos"])
 
     # Extract x and y
-    pos_df = clean_data['player_pos'].apply(pd.Series)
+    pos_df = clean_data["player_pos"].apply(pd.Series)
     # merge extracted coordinates back into the original dataframe
-    combined_data = pd.concat([
-        clean_data.drop('player_pos', axis=1).reset_index(drop=True),
-        pos_df.reset_index(drop=True)
-    ], axis=1)
+    combined_data = pd.concat(
+        [
+            clean_data.drop("player_pos", axis=1).reset_index(drop=True),
+            pos_df.reset_index(drop=True),
+        ],
+        axis=1,
+    )
 
     combined_data
     return (combined_data,)
@@ -198,16 +201,19 @@ def _(mo):
 
 @app.cell
 def _(combined_data, px):
-    uncleanGraph = px.line(combined_data, x='x', y='z', color='session_id', 
-                   title="Player Positions by Session ID", 
-                   labels={"x": "X Coordinate", "z": "Z Coordinate"})
+    uncleanGraph = px.line(
+        combined_data,
+        x="x",
+        y="z",
+        color="session_id",
+        title="Player Positions by Session ID",
+        labels={"x": "X Coordinate", "z": "Z Coordinate"},
+    )
     uncleanGraph.update_traces(
-        mode='markers+lines', 
-        marker=dict(size=5),
-        line=dict(width=1)
+        mode="markers+lines", marker=dict(size=5), line=dict(width=1)
     )
     uncleanGraph.update_layout(height=600)
-    uncleanGraph.update_xaxes(autorange="reversed")   
+    uncleanGraph.update_xaxes(autorange="reversed")
     uncleanGraph
     return
 
@@ -230,7 +236,7 @@ def _(mo):
 
 @app.cell
 def _(Z_MAX, Z_MIN, combined_data):
-    level_data_trim_z = combined_data[combined_data['z'].between(Z_MIN, Z_MAX)]
+    level_data_trim_z = combined_data[combined_data["z"].between(Z_MIN, Z_MAX)]
     level_data_trim_z
     return (level_data_trim_z,)
 
@@ -260,7 +266,7 @@ def _(mo):
 
 @app.cell
 def _(X_MAX, X_MIN, level_data_trim_z):
-    level_data_trim_x = level_data_trim_z[level_data_trim_z['x'].between(X_MIN, X_MAX)]
+    level_data_trim_x = level_data_trim_z[level_data_trim_z["x"].between(X_MIN, X_MAX)]
     level_data = level_data_trim_x
     level_data
     return (level_data,)
@@ -301,17 +307,19 @@ def _(mo):
 
 @app.cell
 def _(level_data, px):
-    fig1 = px.line(level_data, x='x', y='z', color='session_id', 
-                   title="Player Positions by Session ID over Time", 
-                   labels={"x": "X Coordinate", "z": "Z Coordinate"})
+    fig1 = px.line(
+        level_data,
+        x="x",
+        y="z",
+        color="session_id",
+        title="Player Positions by Session ID over Time",
+        labels={"x": "X Coordinate", "z": "Z Coordinate"},
+    )
     fig1.update_traces(
-        mode='markers+lines', 
-        marker=dict(size=5),
-        line=dict(width=1),
-        opacity=0.9
+        mode="markers+lines", marker=dict(size=5), line=dict(width=1), opacity=0.9
     )
     fig1.update_layout(height=600)
-    fig1.update_xaxes(autorange="reversed")   
+    fig1.update_xaxes(autorange="reversed")
     fig1
     return
 
@@ -330,15 +338,19 @@ def _(mo):
 def _(np, sorted_level_data):
     velocity_data = sorted_level_data.copy()
 
-    velocity_data['dx'] = velocity_data.groupby('session_id')['x'].diff()
-    velocity_data['dz'] = velocity_data.groupby('session_id')['z'].diff()
-    velocity_data['dt'] = velocity_data.groupby('session_id')['game_time'].diff()
+    velocity_data["dx"] = velocity_data.groupby("session_id")["x"].diff()
+    velocity_data["dz"] = velocity_data.groupby("session_id")["z"].diff()
+    velocity_data["dt"] = velocity_data.groupby("session_id")["game_time"].diff()
 
-    velocity_data['speed'] = np.sqrt(velocity_data['dx']**2 + velocity_data['dz']**2) / velocity_data['dt']
-    velocity_data['speed'] = velocity_data['speed'].replace([np.inf, -np.inf], np.nan)
-    velocity_data = velocity_data.dropna(subset=['speed'])
+    velocity_data["speed"] = (
+        np.sqrt(velocity_data["dx"] ** 2 + velocity_data["dz"] ** 2) / velocity_data["dt"]
+    )
+    velocity_data["speed"] = velocity_data["speed"].replace([np.inf, -np.inf], np.nan)
+    velocity_data = velocity_data.dropna(subset=["speed"])
 
-    velocity_data = velocity_data[velocity_data['speed'] < velocity_data['speed'].quantile(0.99)]
+    velocity_data = velocity_data[
+        velocity_data["speed"] < velocity_data["speed"].quantile(0.99)
+    ]
     return (velocity_data,)
 
 
@@ -346,13 +358,13 @@ def _(np, sorted_level_data):
 def _(px, velocity_data):
     velocity_scatter = px.scatter(
         velocity_data,
-        x='x',
-        y='z',
-        color='speed',
-        color_continuous_scale='Viridis',
-        title='Player Speed Throughout Level',
-        labels={'x': 'X Position', 'z': 'Z Position', 'speed': 'Speed (units/s)'},
-        opacity=0.6
+        x="x",
+        y="z",
+        color="speed",
+        color_continuous_scale="Viridis",
+        title="Player Speed Throughout Level",
+        labels={"x": "X Position", "z": "Z Position", "speed": "Speed (units/s)"},
+        opacity=0.6,
     )
 
     velocity_scatter.update_layout(height=600)
@@ -372,7 +384,7 @@ def _(mo):
 
 @app.cell
 def _(combined_data, mo):
-    if not combined_data['damage'].sum() and not combined_data['death'].sum():
+    if not combined_data["damage"].sum() and not combined_data["death"].sum():
         print("No damage or death events detected. Stopping monitoring.")
         mo.stop()
     return
@@ -391,11 +403,14 @@ def _(mo):
 @app.cell
 def _(combined_data, pd):
     # Expand run_data dict into columns
-    run_cols = combined_data['run_data'].apply(pd.Series)
-    enriched_data = pd.concat([
-        combined_data.drop('run_data', axis=1).reset_index(drop=True),
-        run_cols.reset_index(drop=True)
-    ], axis=1)
+    run_cols = combined_data["run_data"].apply(pd.Series)
+    enriched_data = pd.concat(
+        [
+            combined_data.drop("run_data", axis=1).reset_index(drop=True),
+            run_cols.reset_index(drop=True),
+        ],
+        axis=1,
+    )
     return (enriched_data,)
 
 
@@ -412,19 +427,19 @@ def _(mo):
 @app.cell
 def _(enriched_data, mo, px):
     damage_events = enriched_data[
-        (enriched_data['event_type'] == 'damage') & enriched_data['damage_source'].notna()
+        (enriched_data["event_type"] == "damage") & enriched_data["damage_source"].notna()
     ]
 
     damage_scatter = px.scatter(
         damage_events,
-        x='x',
-        y='z',
-        color='damage_source',
-        size='damage',
+        x="x",
+        y="z",
+        color="damage_source",
+        size="damage",
         opacity=0.7,
-        title='Damage Events by Source',
-        labels={'x': 'X Position', 'z': 'Z Position', 'damage_source': 'Source'},
-        hover_data=['session_id', 'health_before', 'health_after', 'game_time']
+        title="Damage Events by Source",
+        labels={"x": "X Position", "z": "Z Position", "damage_source": "Source"},
+        hover_data=["session_id", "health_before", "health_after", "game_time"],
     )
     damage_scatter.update_layout(height=600)
     damage_scatter.update_xaxes(autorange="reversed")
@@ -445,23 +460,23 @@ def _(mo):
 @app.cell
 def _(alt, damage_events, mo):
     damage_by_source = (
-        damage_events.groupby('damage_source')['damage']
+        damage_events.groupby("damage_source")["damage"]
         .sum()
         .reset_index()
-        .rename(columns={'damage': 'total_damage'})
-        .sort_values('total_damage', ascending=False)
+        .rename(columns={"damage": "total_damage"})
+        .sort_values("total_damage", ascending=False)
     )
 
     damage_bar = (
         alt.Chart(damage_by_source)
         .mark_bar()
         .encode(
-            x=alt.X('total_damage:Q', title='Total Damage Dealt'),
-            y=alt.Y('damage_source:N', sort='-x', title='Damage Source'),
-            color=alt.Color('damage_source:N', legend=None),
-            tooltip=['damage_source', 'total_damage']
+            x=alt.X("total_damage:Q", title="Total Damage Dealt"),
+            y=alt.Y("damage_source:N", sort="-x", title="Damage Source"),
+            color=alt.Color("damage_source:N", legend=None),
+            tooltip=["damage_source", "total_damage"],
         )
-        .properties(title='Total Damage by Source', width=600, height=300)
+        .properties(title="Total Damage by Source", width=600, height=300)
     )
     mo.ui.altair_chart(damage_bar)
     return
@@ -481,18 +496,18 @@ def _(mo):
 
 @app.cell
 def _(enriched_data, mo, px):
-    health_events = enriched_data[
-        enriched_data['health_after'].notna()
-    ].sort_values(['session_id', 'game_time'])
+    health_events = enriched_data[enriched_data["health_after"].notna()].sort_values(
+        ["session_id", "game_time"]
+    )
 
     health_fig = px.line(
         health_events,
-        x='game_time',
-        y='health_after',
-        color='session_id',
-        title='Health Over Time by Session',
-        labels={'game_time': 'Game Time (s)', 'health_after': 'Health'},
-        hover_data=['damage_source', 'damage']
+        x="game_time",
+        y="health_after",
+        color="session_id",
+        title="Health Over Time by Session",
+        labels={"game_time": "Game Time (s)", "health_after": "Health"},
+        hover_data=["damage_source", "damage"],
     )
     health_fig.update_layout(height=500)
     mo.ui.plotly(health_fig)
