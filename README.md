@@ -12,6 +12,7 @@
 - [ ] Currently some weirdness with runs not properly ending.
     - [ ] I suspect this has to do with the way respawn events are called.
     - [ ] Damage events failing?
+    - [ ] change death to respawn in line 193 TelemetrySubsystem.cpp
 
 #### Cleaning
 
