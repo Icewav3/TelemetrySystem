@@ -1,5 +1,5 @@
 {
-  "info": "Fifth playtest fixed broken damage event collection.",
+  "info": "Fifth playtest, this was internal and dev-only so low stakes. Tested the fix for broken damage event collection, this was a success.",
   "bounds": {
     "x_min": -9999999999,
     "x_max": 99999999,

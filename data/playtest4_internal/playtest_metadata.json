@@ -1,0 +1,9 @@
+{
+  "info": "Fourth Playtest, this was internal and dev-only so low stakes. During the c++ migration, somehow the component was removed, and therefore only position data is present.",
+  "bounds": {
+    "x_min": -9999999999,
+    "x_max": 99999999,
+    "z_min": -4000,
+    "z_max": 99999999
+  }
+}
