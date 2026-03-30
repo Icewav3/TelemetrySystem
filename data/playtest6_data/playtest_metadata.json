@@ -1,0 +1,9 @@
+{
+  "info": "Sixth playtest, absolutely massive scale and public, not internal. Gathered huge amount of useful data.",
+  "bounds": {
+    "x_min": -9999999999,
+    "x_max": 99999999,
+    "z_min": -4000,
+    "z_max": 99999999
+  }
+}
