@@ -1,0 +1,14 @@
+{
+  "info": "First actual playtest with the public, no username, damage or death logging, just position at fixed intervals.",
+  "bounds": {
+    "x_min": -7600,
+    "x_max": 700,
+    "z_min": -70,
+    "z_max": 1500
+  },
+  "event_types": [
+    "position",
+    "session_end",
+    "session_start"
+  ]
+}
