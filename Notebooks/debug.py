@@ -65,26 +65,33 @@ def _(Path, json, mo, pd):
                     if _last_time is None or _lt > _last_time:
                         _last_time = _lt
 
+            _date = ""
             _duration = ""
             if _first_time is not None and _last_time is not None:
+                _date = _first_time.strftime("%Y-%m-%d")
                 _dur_s = int((_last_time - _first_time).total_seconds())
                 _hrs = _dur_s // 3600
                 _mins = (_dur_s % 3600) // 60
                 _secs = _dur_s % 60
                 _duration = f"{_hrs}h {_mins}m {_secs}s"
 
-            _rows.append({
-                "Folder": _folder.name,
-                "Has Metadata": _meta_path.exists(),
-                "Duration": _duration if _duration else "—",
-                "Description": _description[:120] if _description else "—",
-            })
+            _rows.append(
+                {
+                    "Folder": _folder.name,
+                    "Date": _date if _date else "—",
+                    "Duration": _duration if _duration else "—",
+                    "Has Metadata": _meta_path.exists(),
+                    "Description": _description[:120] if _description else "—",
+                }
+            )
 
     _output = (
-        mo.vstack([
-            mo.md("### Playtest Overview"),
-            mo.ui.table(pd.DataFrame(_rows), selection=None),
-        ])
+        mo.vstack(
+            [
+                mo.md("### Playtest Overview"),
+                mo.ui.table(pd.DataFrame(_rows), selection=None),
+            ]
+        )
         if _rows
         else mo.md("")
     )
@@ -92,7 +99,7 @@ def _(Path, json, mo, pd):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(Path, mo):
     data_dir = Path(__file__).parent.parent / "data"
 
@@ -115,15 +122,13 @@ def _(Path, mo):
     return (file_selector,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(file_selector, mo):
-    mo.stop(
-        not file_selector.value, mo.md("Please select a data file to begin analysis")
-    )
+    mo.stop(not file_selector.value, mo.md("Please select a data file to begin analysis"))
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(file_selector, pd):
     raw_data = pd.read_json(file_selector.value, lines=True)
     return (raw_data,)
@@ -213,11 +218,7 @@ def _(mo, raw_data):
     _sorted = raw_data.sort_values(["session_id", "event_order"]).reset_index(drop=True)
 
     _seq_violations = (
-        _sorted.groupby("session_id")["event_order"]
-        .diff()
-        .dropna()
-        .lt(0)
-        .sum()
+        _sorted.groupby("session_id")["event_order"].diff().dropna().lt(0).sum()
     )
 
     mo.md(f"""
@@ -255,13 +256,23 @@ def _(mo, raw_data):
             mo.ui.tabs(
                 {
                     "Gap Summary by Session": mo.ui.table(
-                        _gap_summary.sort_values("total_missing", ascending=False).reset_index(drop=True)
+                        _gap_summary.sort_values(
+                            "total_missing", ascending=False
+                        ).reset_index(drop=True)
                     )
                     if len(_gap_summary) > 0
                     else mo.md("✅ No gaps detected — event_order is fully contiguous!"),
                     "All Gap Locations": mo.ui.table(
                         _gap_rows[
-                            ["session_id", "machine_id", "event_order", "gap_size", "events_missing", "game_time", "event_type"]
+                            [
+                                "session_id",
+                                "machine_id",
+                                "event_order",
+                                "gap_size",
+                                "events_missing",
+                                "game_time",
+                                "event_type",
+                            ]
                         ]
                         .sort_values(["session_id", "event_order"])
                         .reset_index(drop=True)
@@ -290,26 +301,30 @@ def _(go, mo, raw_data, x_max_input, x_min_input, z_max_input, z_min_input):
     _fig = go.Figure()
 
     if len(_pos) > 0:
-        _fig.add_trace(go.Scattergl(
-            x=_pos["player_pos"].apply(lambda p: p["x"]),
-            y=_pos["player_pos"].apply(lambda p: p["z"]),
-            mode="markers",
-            marker=dict(size=3, opacity=0.3),
-            name="Positions",
-        ))
+        _fig.add_trace(
+            go.Scattergl(
+                x=_pos["player_pos"].apply(lambda p: p["x"]),
+                y=_pos["player_pos"].apply(lambda p: p["z"]),
+                mode="markers",
+                marker=dict(size=3, opacity=0.3),
+                name="Positions",
+            )
+        )
 
     _xmin = x_min_input.value
     _xmax = x_max_input.value
     _zmin = z_min_input.value
     _zmax = z_max_input.value
 
-    _fig.add_trace(go.Scatter(
-        x=[_xmin, _xmax, _xmax, _xmin, _xmin],
-        y=[_zmin, _zmin, _zmax, _zmax, _zmin],
-        mode="lines",
-        line=dict(color="red", dash="dash", width=2),
-        name="Bounds",
-    ))
+    _fig.add_trace(
+        go.Scatter(
+            x=[_xmin, _xmax, _xmax, _xmin, _xmin],
+            y=[_zmin, _zmin, _zmax, _zmax, _zmin],
+            mode="lines",
+            line=dict(color="red", dash="dash", width=2),
+            name="Bounds",
+        )
+    )
 
     _x_range = _xmax - _xmin
     _z_range = _zmax - _zmin
@@ -325,9 +340,12 @@ def _(go, mo, raw_data, x_max_input, x_min_input, z_max_input, z_min_input):
 
 
 @app.cell(hide_code=True)
-def _(Path, file_selector, json, mo):
+def _(Path, file_selector, json, mo, raw_data):
     meta_path = Path(file_selector.value).parent / "playtest_metadata.json"
-    _defaults = {"info": "", "bounds": {"x_min": -10000, "x_max": 10000, "z_min": -10000, "z_max": 10000}}
+    _defaults = {
+        "info": "",
+        "bounds": {"x_min": -10000, "x_max": 10000, "z_min": -10000, "z_max": 10000},
+    }
     if meta_path.exists():
         with open(meta_path) as _f:
             _meta = json.load(_f)
@@ -335,6 +353,9 @@ def _(Path, file_selector, json, mo):
         _meta = _defaults
     _bounds = _meta.get("bounds", _defaults["bounds"])
     _info = _meta.get("info", "")
+    _saved_types = _meta.get("event_types", [])
+
+    detected_event_types = sorted(raw_data["event_type"].unique().tolist())
 
     x_min_input = mo.ui.number(value=_bounds["x_min"], label="X Min", step=100)
     x_max_input = mo.ui.number(value=_bounds["x_max"], label="X Max", step=100)
@@ -342,14 +363,19 @@ def _(Path, file_selector, json, mo):
     z_max_input = mo.ui.number(value=_bounds["z_max"], label="Z Max", step=100)
     description_input = mo.ui.text_area(value=_info, label="Description", full_width=True)
 
-    mo.vstack([
-        mo.md("### Bounds Editor"),
-        mo.hstack([x_min_input, x_max_input, z_min_input, z_max_input]),
-        mo.md("### Playtest Notes"),
-        description_input,
-    ])
+    mo.vstack(
+        [
+            mo.md("### Bounds Editor"),
+            mo.hstack([x_min_input, x_max_input, z_min_input, z_max_input]),
+            mo.md("### Event Types"),
+            mo.md(f"`{', '.join(detected_event_types)}`"),
+            mo.md("### Playtest Notes"),
+            description_input,
+        ]
+    )
     return (
         description_input,
+        detected_event_types,
         meta_path,
         x_max_input,
         x_min_input,
@@ -368,6 +394,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(
     description_input,
+    detected_event_types,
     json,
     meta_path,
     mo,
@@ -386,6 +413,7 @@ def _(
             "z_min": z_min_input.value,
             "z_max": z_max_input.value,
         },
+        "event_types": detected_event_types,
     }
     with open(meta_path, "w") as _f:
         json.dump(_meta, _f, indent=2)
