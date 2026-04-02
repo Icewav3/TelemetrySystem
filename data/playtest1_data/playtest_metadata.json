@@ -1,9 +1,9 @@
 {
   "info": "First actual playtest, no username, damage or death logging, just position at fixed intervals.",
   "bounds": {
-    "x_min": -7500,
-    "x_max": 0,
+    "x_min": -7600,
+    "x_max": 700,
     "z_min": -70,
-    "z_max": 9999
+    "z_max": 1500
   }
 }
