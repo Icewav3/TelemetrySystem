@@ -8,7 +8,7 @@
             "module": "marimo",
             "args": [
                 "edit",
-                "main.py",
+                "notebooks/main.py",
                 "--watch",
                 "--port",
                 "8888",

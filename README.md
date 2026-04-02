@@ -9,11 +9,11 @@
 
 ### Bugs:
 
-- [ ] Currently some weirdness with runs not properly ending.
-    - [ ] I suspect this has to do with the way respawn events are called.
-    - [ ] Damage events failing?
+- [x] Currently some weirdness with runs not properly ending.
+    - [x] I suspect this has to do with the way respawn events are called.
+    - [x] Damage events failing?
     - [ ] change death to respawn in line 193 TelemetrySubsystem.cpp
-    - [ ] runs still not properly starting or ending
+    - [x] runs still not properly starting or ending
 
 #### Cleaning
 
@@ -23,23 +23,23 @@
 
 ###### Replace in dataset
 
-- [ ] "death" --> "respawn"
-- [ ] "framecount" --> "event_order"
+- [x] "death" --> "respawn"
+- [x] "framecount" --> "event_order"
 
 ###### Additions
 
 - [x] "current_framerate" : int
-- [ ] "current_room" : string
+- [x] "current_room" : string
 
 #### Marimo Visualization issues:
 
 ###### Replacements
 
-- [ ] change framecount to event_order
+- [x] change framecount to event_order
 
 ###### Additions
 
-- [ ] Improve metadata system
+- [x] Improve metadata system
     - [ ] change from setting massive bounds if undefined in metadata to instead use boundless
 - [ ] Exclude PIE data
 
@@ -56,13 +56,13 @@
 
 #### C++ Telemetry Features:
 
-- [ ] Room logging
-    - [ ] Test locally
+- [x] Room logging
+    - [x] Test locally
     - [x] Update JSON schema
 - [x] PIE (play in editor) awareness
     - [x] Test locally
     - [x] Update JSON schema
-- [ ] Kyle hoping for framerate logging
+- [x] Kyle hoping for framerate logging
 - [ ] Collect info on weapons used/interacted with
 - [ ] Collect first interactions (e.g. first attack, first jump)
 - [ ] In engine visualization

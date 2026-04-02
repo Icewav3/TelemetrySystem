@@ -6,13 +6,13 @@ app = marimo.App(width="full")
 
 @app.cell
 def _():
+    from pathlib import Path
+
+    import altair as alt
     import marimo as mo
+    import numpy as np
     import pandas as pd
     import plotly.express as px
-    import plotly.graph_objects as go
-    import numpy as np
-    import altair as alt
-    from pathlib import Path
 
     return Path, alt, mo, np, pd, px
 
@@ -21,6 +21,7 @@ def _():
 def _(mo):
     mo.md("""
     # Playtester Telemetry Analysis
+
     This notebook analyzes telemetry data collected from playtesters in order to understand player behavior and identify potential issues within the game level.
     """)
     return
@@ -50,7 +51,9 @@ def _(Path, mo):
 
 @app.cell
 def _(file_selector, mo):
-    mo.stop(not file_selector.value, mo.md("Please select a data file to begin analysis"))
+    mo.stop(
+        not file_selector.value, mo.md("Please select a data file to begin analysis")
+    )
     return
 
 
@@ -108,15 +111,6 @@ def _(mo, raw_data):
 @app.cell(hide_code=True)
 def _(mo, raw_data):
     mo.md(f"""
-    ## 🛠️ Debugging Info
-
-    ### Event Integrity
-    - **Total raw events**: {len(raw_data)}
-    - **Position events total**: {len(raw_data[raw_data["event_type"] == "position"])}
-    - **Duplicate position events** *(game_time appears more than once)*: {raw_data[raw_data["event_type"] == "position"].groupby("game_time").size().gt(1).sum()}
-    - **Orphaned position events** *(game_time appears exactly once — missing pair)*: {raw_data[raw_data["event_type"] == "position"].groupby("game_time").size().eq(1).sum()}
-    - **Over-fired position events** *(game_time appears 3+ times)*: {raw_data[raw_data["event_type"] == "position"].groupby("game_time").size().gt(2).sum()}
-
     ### Session Health
     - **Unique sessions**: {raw_data["session_id"].nunique()}
     - **Unique machines**: {raw_data["machine_id"].nunique()}
@@ -343,7 +337,8 @@ def _(np, sorted_level_data):
     velocity_data["dt"] = velocity_data.groupby("session_id")["game_time"].diff()
 
     velocity_data["speed"] = (
-        np.sqrt(velocity_data["dx"] ** 2 + velocity_data["dz"] ** 2) / velocity_data["dt"]
+        np.sqrt(velocity_data["dx"] ** 2 + velocity_data["dz"] ** 2)
+        / velocity_data["dt"]
     )
     velocity_data["speed"] = velocity_data["speed"].replace([np.inf, -np.inf], np.nan)
     velocity_data = velocity_data.dropna(subset=["speed"])
@@ -427,7 +422,8 @@ def _(mo):
 @app.cell
 def _(enriched_data, mo, px):
     damage_events = enriched_data[
-        (enriched_data["event_type"] == "damage") & enriched_data["damage_source"].notna()
+        (enriched_data["event_type"] == "damage")
+        & enriched_data["damage_source"].notna()
     ]
 
     damage_scatter = px.scatter(
