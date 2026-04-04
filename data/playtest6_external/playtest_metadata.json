@@ -1,9 +1,18 @@
 {
   "info": "Sixth playtest, absolutely massive scale and public, not internal. Gathered huge amount of useful data. Rooms are added and correctly logged",
   "bounds": {
-    "x_min": -9999999999,
-    "x_max": 99999999,
-    "z_min": -4000,
-    "z_max": 99999999
-  }
+    "x_min": -38800,
+    "x_max": 800,
+    "z_min": -1500,
+    "z_max": 3500
+  },
+  "event_types": [
+    "damage",
+    "death",
+    "position",
+    "run_end",
+    "run_start",
+    "session_end",
+    "session_start"
+  ]
 }

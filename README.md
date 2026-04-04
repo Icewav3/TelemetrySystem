@@ -1,5 +1,10 @@
 ### Todo:
 
+- Due to latest playtest had death existing, sessions had multiple runs, which led to perceived teleporting
+- [ ] separate by run start 
+- [ ] why are enemies now kinda fcked up and not returning human readable values
+
+
 - [x] Component refactor
     - [x] C++ implementation (get working)
     - [x] Blueprint implementation (working)

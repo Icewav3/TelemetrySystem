@@ -1,0 +1,14 @@
+{
+  "info": "Playtest 3 was the first playtest with the new map layout. This was midst of migration to C++ and therefore damage events I had introduced a large bug that prevented damage from being captured.",
+  "bounds": {
+    "x_min": -39000,
+    "x_max": 3900,
+    "z_min": -2700,
+    "z_max": 3400
+  },
+  "event_types": [
+    "position",
+    "session_end",
+    "session_start"
+  ]
+}

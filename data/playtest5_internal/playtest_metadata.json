@@ -1,9 +1,18 @@
 {
-  "info": "Fifth playtest, this was internal and dev-only so low stakes. Tested the fix for broken damage event collection, this was a success.",
+  "info": "Fifth playtest, this was internal and dev-only so low stakes. Tested the fix for broken damage event collection, this was a success. The boss level was inaccessible so a teleport point was placed.",
   "bounds": {
-    "x_min": -9999999999,
-    "x_max": 99999999,
-    "z_min": -4000,
-    "z_max": 99999999
-  }
+    "x_min": -45400,
+    "x_max": 1600,
+    "z_min": -2700,
+    "z_max": 4800
+  },
+  "event_types": [
+    "damage",
+    "death",
+    "position",
+    "run_end",
+    "run_start",
+    "session_end",
+    "session_start"
+  ]
 }

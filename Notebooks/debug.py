@@ -7,7 +7,7 @@
 
 import marimo
 
-__generated_with = "0.20.4"
+__generated_with = "0.22.0"
 app = marimo.App(width="full")
 
 
@@ -382,6 +382,43 @@ def _(Path, file_selector, json, mo, raw_data):
         z_max_input,
         z_min_input,
     )
+
+
+@app.cell(hide_code=True)
+def excluded_data_points(
+    mo,
+    raw_data,
+    x_max_input,
+    x_min_input,
+    z_max_input,
+    z_min_input,
+):
+    _pos_data = raw_data[raw_data["player_pos"].notna()].copy()
+    _pos_data["_x"] = _pos_data["player_pos"].apply(lambda p: p["x"])
+    _pos_data["_z"] = _pos_data["player_pos"].apply(lambda p: p["z"])
+
+    _x_min = x_min_input.value
+    _x_max = x_max_input.value
+    _z_min = z_min_input.value
+    _z_max = z_max_input.value
+
+    excluded_data_points = _pos_data[
+        ~(_pos_data["_x"].between(_x_min, _x_max) & _pos_data["_z"].between(_z_min, _z_max))
+    ].drop(columns=["_x", "_z"]).reset_index(drop=True)
+
+    _count = len(excluded_data_points)
+    _total = len(_pos_data)
+    _pct = (_count / _total * 100) if _total > 0 else 0
+
+    mo.vstack([
+        mo.md("### Excluded Data Points"),
+        mo.callout(
+            mo.md(f"**{_count:,}** position events are outside the current bounds ({_pct:.1f}% of {_total:,} position events)"),
+            kind="warn" if _count > 0 else "success",
+        ),
+        mo.ui.table(excluded_data_points) if _count > 0 else mo.md(""),
+    ])
+    return
 
 
 @app.cell(hide_code=True)

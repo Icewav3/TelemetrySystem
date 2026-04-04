@@ -1,0 +1,14 @@
+{
+  "info": "Initial fake data test generated from client_test_script.ps1",
+  "bounds": {
+    "x_min": -10000,
+    "x_max": 10000,
+    "z_min": -10000,
+    "z_max": 10000
+  },
+  "event_types": [
+    "position",
+    "session_end",
+    "session_start"
+  ]
+}
