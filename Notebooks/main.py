@@ -1,11 +1,11 @@
 import marimo
 
-__generated_with = "0.20.4"
+__generated_with = "0.22.0"
 app = marimo.App(width="full")
 
 
 @app.cell
-def _():
+def imports():
     from pathlib import Path
 
     import altair as alt
@@ -18,7 +18,7 @@ def _():
 
 
 @app.cell
-def _(mo):
+def notebook_header(mo):
     mo.md("""
     # Playtester Telemetry Analysis
 
@@ -28,7 +28,7 @@ def _(mo):
 
 
 @app.cell
-def _(Path, mo):
+def file_selector_ui(Path, mo):
     data_dir = Path("data")
 
     available_files = []
@@ -50,21 +50,21 @@ def _(Path, mo):
 
 
 @app.cell
-def _(file_selector, mo):
+def file_guard(file_selector, mo):
     mo.stop(
         not file_selector.value, mo.md("Please select a data file to begin analysis")
     )
     return
 
 
-@app.cell
-def _(file_selector, pd):
+@app.cell(hide_code=True)
+def load_raw_data(file_selector, pd):
     raw_data = pd.read_json(file_selector.value, lines=True)
     return (raw_data,)
 
 
-@app.cell
-def _(Path, file_selector, mo):
+@app.cell(hide_code=True)
+def load_metadata(Path, file_selector, mo):
     import json
 
     _config_path = Path(file_selector.value).parent / "playtest_metadata.json"
@@ -79,16 +79,20 @@ def _(Path, file_selector, mo):
             "z_min": -99999999999999,
             "z_max": 99999999999999,
         }
+        playtest_info = ""
+        known_event_types = []
     else:
         with open(_config_path) as f:
             _config = json.load(f)
 
         LEVEL_BOUNDS = _config["bounds"]
-    return (LEVEL_BOUNDS,)
+        playtest_info = _config.get("info", "")
+        known_event_types = _config.get("event_types", [])
+    return LEVEL_BOUNDS, known_event_types, playtest_info
 
 
-@app.cell
-def _(LEVEL_BOUNDS):
+@app.cell(hide_code=True)
+def unpack_bounds(LEVEL_BOUNDS):
     X_MIN = LEVEL_BOUNDS["x_min"]
     X_MAX = LEVEL_BOUNDS["x_max"]
     Z_MIN = LEVEL_BOUNDS["z_min"]
@@ -97,49 +101,66 @@ def _(LEVEL_BOUNDS):
 
 
 @app.cell
-def _(mo, raw_data):
-    mo.md(f"""
-    ## Data Summary
+def pie_toggle(mo):
+    include_pie = mo.ui.checkbox(
+        label="Include Play in Editor (PIE) data",
+        value=False,
+    )
+    include_pie
+    return (include_pie,)
 
-    - **Total records**: {len(raw_data):,}
-    - **Unique sessions**: {raw_data["session_id"].nunique()}
-    - **Time range**: {raw_data["game_time"].min():.1f}s - {raw_data["game_time"].max():.1f}s
+
+@app.cell(hide_code=True)
+def playtest_info(include_pie, mo, pd, playtest_info, raw_data):
+    _data = raw_data if include_pie.value or "editor" not in raw_data.columns else raw_data[~raw_data["editor"].fillna(False).astype(bool)]
+
+    _sessions = _data["session_id"].nunique()
+    _machines = _data["machine_id"].nunique()
+    _events = len(_data)
+    _event_types = sorted(_data["event_type"].unique().tolist())
+    _time_min = _data["game_time"].min()
+    _time_max = _data["game_time"].max()
+
+    _session_durations = _data.groupby("session_id")["game_time"].max()
+    _avg_duration = _session_durations.mean()
+    _median_duration = _session_durations.median()
+
+    _date_str = ""
+    if "server_timestamp" in _data.columns:
+        _ts = pd.to_datetime(_data["server_timestamp"])
+        _date_str = f"- **Date**: {_ts.min().strftime('%Y-%m-%d')}\n"
+
+    _pie_str = ""
+    if "editor" in raw_data.columns:
+        _pie_pct = raw_data["editor"].mean() * 100
+        _pie_str = f"- **PIE sessions**: {_pie_pct:.1f}% of all events (unfiltered)\n"
+
+    _info_block = f"> {playtest_info}\n\n" if playtest_info else ""
+
+    mo.md(f"""
+    ## Playtest Info
+
+    {_info_block}{_date_str}{_pie_str}- **Players (unique sessions)**: {_sessions}
+    - **Unique machines**: {_machines}
+    - **Total telemetry events**: {_events:,}
+    - **Event types**: {', '.join(_event_types)}
+    - **Game time range**: {_time_min:.1f}s - {_time_max:.1f}s
+    - **Avg session duration**: {_avg_duration:.1f}s
+    - **Median session duration**: {_median_duration:.1f}s
     """)
     return
 
 
 @app.cell(hide_code=True)
-def _(mo, raw_data):
-    mo.md(f"""
-    ### Session Health
-    - **Unique sessions**: {raw_data["session_id"].nunique()}
-    - **Unique machines**: {raw_data["machine_id"].nunique()}
-    - **Event types seen**: {sorted(raw_data["event_type"].unique().tolist())}
-    """)
-    return
-
-
-@app.cell
-def _(mo, raw_data):
-    # Filter for only the times that appear more than once
-    counts = raw_data["game_time"].value_counts()
-    duplicates_report = counts[counts > 1]
-
-    # In marimo, this looks great in a table:
-    mo.ui.table(duplicates_report.reset_index())
-    return
-
-
-@app.cell
-def _(mo):
+def section_user_events(mo):
     mo.md(r"""
-    ## Telemetry Events recieved per user
+    ## Telemetry Events received per user
     """)
     return
 
 
 @app.cell
-def _(raw_data):
+def events_per_user(raw_data):
     if "user_name" in raw_data.columns:
         data_per_user = raw_data["user_name"].value_counts()
     else:
@@ -149,20 +170,11 @@ def _(raw_data):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## Preview of the raw data
-    """)
-    return
+def data_transform(X_MAX, X_MIN, Z_MAX, Z_MIN, include_pie, pd, raw_data):
+    _data = raw_data if include_pie.value or "editor" not in raw_data.columns else raw_data[~raw_data["editor"].fillna(False).astype(bool)]
+    clean_data = _data.dropna(subset=["player_pos"])
 
-
-@app.cell
-def _(pd, raw_data):
-    clean_data = raw_data.dropna(subset=["player_pos"])
-
-    # Extract x and y
     pos_df = clean_data["player_pos"].apply(pd.Series)
-    # merge extracted coordinates back into the original dataframe
     combined_data = pd.concat(
         [
             clean_data.drop("player_pos", axis=1).reset_index(drop=True),
@@ -171,138 +183,32 @@ def _(pd, raw_data):
         axis=1,
     )
 
-    combined_data
-    return (combined_data,)
-
-
-@app.cell
-def _(mo):
-    mo.md("""
-    ## Data Cleaning Pipeline
-
-    Removing outliers and invalid data points.
-    """)
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    ### Showcase of what raw data graphed looks like
-    """)
-    return
-
-
-@app.cell
-def _(combined_data, px):
-    uncleanGraph = px.line(
-        combined_data,
-        x="x",
-        y="z",
-        color="session_id",
-        title="Player Positions by Session ID",
-        labels={"x": "X Coordinate", "z": "Z Coordinate"},
+    level_data = (
+        combined_data[
+            combined_data["z"].between(Z_MIN, Z_MAX)
+            & combined_data["x"].between(X_MIN, X_MAX)
+        ]
+        .sort_values(["session_id", "server_timestamp"])
     )
-    uncleanGraph.update_traces(
-        mode="markers+lines", marker=dict(size=5), line=dict(width=1)
-    )
-    uncleanGraph.update_layout(height=600)
-    uncleanGraph.update_xaxes(autorange="reversed")
-    uncleanGraph
-    return
+    return combined_data, level_data
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def section_pathing(mo):
     mo.md(r"""
-    # Drop players who went out of bounds
+    # Player Pathing Visualization
     """)
     return
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""
-    ### Drop data from players who fell off the map
-    """)
-    return
+def player_pathing(level_data, np, px):
+    _dist = np.sqrt(level_data.groupby("session_id")["x"].diff()**2 + level_data.groupby("session_id")["z"].diff()**2)
+    _plot = level_data.copy()
+    _plot.loc[_dist > 1000, ["x", "z"]] = np.nan
 
-
-@app.cell
-def _(Z_MAX, Z_MIN, combined_data):
-    level_data_trim_z = combined_data[combined_data["z"].between(Z_MIN, Z_MAX)]
-    level_data_trim_z
-    return (level_data_trim_z,)
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    ### Temporal data
-    """)
-    return
-
-
-@app.cell
-def _(level_data_trim_z):
-    temporal_chart = level_data_trim_z
-    temporal_chart
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    ### Drop data from people who have passed the end of the level
-    """)
-    return
-
-
-@app.cell
-def _(X_MAX, X_MIN, level_data_trim_z):
-    level_data_trim_x = level_data_trim_z[level_data_trim_z["x"].between(X_MIN, X_MAX)]
-    level_data = level_data_trim_x
-    level_data
-    return (level_data,)
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    ### Sort data
-    """)
-    return
-
-
-@app.cell
-def _(level_data):
-    sorted_level_data = level_data.sort_values(["session_id", "game_time"])
-    sorted_level_data
-    return (sorted_level_data,)
-
-
-@app.cell(hide_code=True)
-def _(mo, sorted_level_data):
-    mo.md(f"""
-    ### Ensure all data is in correct time sequence
-
-    - **Time sequence violations**: {sorted_level_data.groupby("session_id")["game_time"].diff().dropna().lt(0).sum()}
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    # Player Pathing visualizaton
-    """)
-    return
-
-
-@app.cell
-def _(level_data, px):
     fig1 = px.line(
-        level_data,
+        _plot,
         x="x",
         y="z",
         color="session_id",
@@ -319,7 +225,7 @@ def _(level_data, px):
 
 
 @app.cell
-def _(mo):
+def section_velocity(mo):
     mo.md("""
     ## Player Velocity Analysis
 
@@ -328,9 +234,9 @@ def _(mo):
     return
 
 
-@app.cell
-def _(np, sorted_level_data):
-    velocity_data = sorted_level_data.copy()
+@app.cell(hide_code=True)
+def compute_velocity(level_data, np):
+    velocity_data = level_data.copy()
 
     velocity_data["dx"] = velocity_data.groupby("session_id")["x"].diff()
     velocity_data["dz"] = velocity_data.groupby("session_id")["z"].diff()
@@ -350,7 +256,7 @@ def _(np, sorted_level_data):
 
 
 @app.cell
-def _(px, velocity_data):
+def velocity_scatter(px, velocity_data):
     velocity_scatter = px.scatter(
         velocity_data,
         x="x",
@@ -370,34 +276,18 @@ def _(px, velocity_data):
 
 
 @app.cell(hide_code=True)
-def _(mo):
+def section_damage(mo):
     mo.md(r"""
     # Damage and Death Analysis
     """)
     return
 
 
-@app.cell
-def _(combined_data, mo):
-    if not combined_data["damage"].sum() and not combined_data["death"].sum():
-        print("No damage or death events detected. Stopping monitoring.")
-        mo.stop()
-    return
+@app.cell(hide_code=True)
+def enrich_run_data(combined_data, known_event_types, mo, pd):
+    _has_damage = "damage" in known_event_types or not known_event_types
+    mo.stop(not _has_damage, mo.md("*No damage events in this playtest.*"))
 
-
-@app.cell
-def _(mo):
-    mo.md("""
-    ## Damage & Death Analysis
-
-    Using the new telemetry fields: `event_type`, `damage`, `health_before`, `health_after`, `damage_source`, `run_data`.
-    """)
-    return
-
-
-@app.cell
-def _(combined_data, pd):
-    # Expand run_data dict into columns
     run_cols = combined_data["run_data"].apply(pd.Series)
     enriched_data = pd.concat(
         [
@@ -410,7 +300,7 @@ def _(combined_data, pd):
 
 
 @app.cell
-def _(mo):
+def section_damage_map(mo):
     mo.md("""
     ### Damage Events by Source
 
@@ -420,7 +310,7 @@ def _(mo):
 
 
 @app.cell
-def _(enriched_data, mo, px):
+def damage_scatter(enriched_data, mo, px):
     damage_events = enriched_data[
         (enriched_data["event_type"] == "damage")
         & enriched_data["damage_source"].notna()
@@ -444,7 +334,7 @@ def _(enriched_data, mo, px):
 
 
 @app.cell
-def _(mo):
+def section_damage_bar(mo):
     mo.md("""
     ### Damage by Source
 
@@ -454,7 +344,7 @@ def _(mo):
 
 
 @app.cell
-def _(alt, damage_events, mo):
+def damage_by_source(alt, damage_events, mo):
     damage_by_source = (
         damage_events.groupby("damage_source")["damage"]
         .sum()
@@ -479,7 +369,7 @@ def _(alt, damage_events, mo):
 
 
 @app.cell
-def _(mo):
+def section_health(mo):
     mo.md("""
     ### Player Health Over Time
 
@@ -491,7 +381,7 @@ def _(mo):
 
 
 @app.cell
-def _(enriched_data, mo, px):
+def health_over_time(enriched_data, mo, px):
     health_events = enriched_data[enriched_data["health_after"].notna()].sort_values(
         ["session_id", "game_time"]
     )
@@ -507,6 +397,11 @@ def _(enriched_data, mo, px):
     )
     health_fig.update_layout(height=500)
     mo.ui.plotly(health_fig)
+    return
+
+
+@app.cell
+def _():
     return
 
 
