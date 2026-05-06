@@ -7,7 +7,7 @@
 
 import marimo
 
-__generated_with = "0.22.0"
+__generated_with = "0.23.2"
 app = marimo.App(width="full")
 
 
@@ -281,6 +281,200 @@ def _(mo, raw_data):
                     else mo.md("✅ No gaps detected!"),
                 }
             ),
+        ]
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Schema Validation
+
+    Validates every event against `telemetry.schema.json`. The schema is the source of truth — see `data/README.md` for time-model and editor-vs-build naming notes that are not enforceable in JSON Schema.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(Path, json):
+    _schema_path = Path(__file__).parent.parent / "telemetry.schema.json"
+    with open(_schema_path) as _f:
+        schema = json.load(_f)
+    return (schema,)
+
+
+@app.cell(hide_code=True)
+def _(pd, raw_data):
+    def _clean(rec):
+        # pandas turns absent JSONL keys into NaN; drop those so checks see true absence
+        return {
+            k: v for k, v in rec.items() if not (isinstance(v, float) and pd.isna(v))
+        }
+
+    records = [_clean(r) for r in raw_data.to_dict(orient="records")]
+    return (records,)
+
+
+@app.cell(hide_code=True)
+def _(mo, pd, records, schema):
+    def _is_empty(v):
+        if v is None:
+            return True
+        if isinstance(v, str) and v == "":
+            return True
+        if isinstance(v, float) and pd.isna(v):
+            return True
+        return False
+
+    def _status(passed, total):
+        if total == 0:
+            return "—", "no applicable events"
+        pct = passed / total * 100
+        if passed == total:
+            return "✅", f"{passed:,} / {total:,} (100%)"
+        if passed == 0:
+            return "❌", f"{passed:,} / {total:,} (0%)"
+        return "⚠️", f"{passed:,} / {total:,} ({pct:.1f}%)"
+
+    # Build per-event-type required-field map from the schema's oneOf branches
+    _branches = {}
+    for _b in schema.get("oneOf", []):
+        _props = _b.get("properties", {})
+        _et = _props.get("event_type", {}).get("const")
+        if _et:
+            _branches[_et] = list(_b.get("required", []))
+
+    _checks = []
+
+    def _add(section, field, applies_to, predicate, applicable_filter=None):
+        applicable = [r for r in records if (applicable_filter is None or applicable_filter(r))]
+        passed = sum(1 for r in applicable if predicate(r))
+        s, d = _status(passed, len(applicable))
+        _checks.append(
+            {
+                "Section": section,
+                "Field / Rule": field,
+                "Applies to": applies_to,
+                "Status": s,
+                "Pass / Total": d,
+            }
+        )
+
+    # ---- Top-level required fields ----
+    for _f in schema.get("required", []):
+        if _f == "run_data":
+            _add("Top-level required", _f, "all events",
+                 lambda r, k=_f: isinstance(r.get(k), dict))
+        else:
+            _add("Top-level required", _f, "all events",
+                 lambda r, k=_f: not _is_empty(r.get(k)))
+
+    # ---- run_data sub-fields (required by schema on every event) ----
+    _rd_required = schema["properties"]["run_data"].get("required", [])
+    for _f in _rd_required:
+        _add("run_data sub-field present", _f, "all events",
+             lambda r, k=_f: isinstance(r.get("run_data"), dict) and k in r["run_data"])
+
+    # ---- run_data semantic checks (during active runs only) ----
+    _sorted = sorted(records, key=lambda r: (r.get("session_id", ""), r.get("event_order", 0)))
+    _active = {}
+    _during_run_ids = set()
+    for _i, _r in enumerate(_sorted):
+        _sid = _r.get("session_id")
+        _et = _r.get("event_type")
+        if _et == "run_start":
+            _active[_sid] = True
+        in_run = _active.get(_sid, False)
+        if in_run:
+            _during_run_ids.add(id(_r))
+        if _et == "run_end":
+            _active[_sid] = False
+
+    def _during(r):
+        return id(r) in _during_run_ids
+
+    _add("run_data semantic coverage", "run_id non-empty",
+         "events between run_start..run_end (inclusive)",
+         lambda r: isinstance(r.get("run_data"), dict) and not _is_empty(r["run_data"].get("run_id")),
+         applicable_filter=_during)
+
+    _add("run_data semantic coverage", "run_start_time > 0",
+         "events during an active run (key is present always; this checks it's actually populated)",
+         lambda r: isinstance(r.get("run_data"), dict) and (r["run_data"].get("run_start_time") or 0) > 0,
+         applicable_filter=_during)
+
+    _add("run_data semantic coverage", "run_end_time > 0",
+         "`run_end` events only",
+         lambda r: isinstance(r.get("run_data"), dict) and (r["run_data"].get("run_end_time") or 0) > 0,
+         applicable_filter=lambda r: r.get("event_type") == "run_end")
+
+    _add("run_data semantic coverage", "run_total_time > 0",
+         "`run_end` events only",
+         lambda r: isinstance(r.get("run_data"), dict) and (r["run_data"].get("run_total_time") or 0) > 0,
+         applicable_filter=lambda r: r.get("event_type") == "run_end")
+
+    _add("run_data semantic coverage", "end_reason non-empty",
+         "`run_end` events only",
+         lambda r: isinstance(r.get("run_data"), dict) and not _is_empty(r["run_data"].get("end_reason")),
+         applicable_filter=lambda r: r.get("event_type") == "run_end")
+
+    # ---- Per-event-type required fields (oneOf branches) ----
+    for _et, _required in _branches.items():
+        _filt = (lambda et: lambda r: r.get("event_type") == et)(_et)
+        for _f in _required:
+            if _f == "player_pos":
+                _add(f"`{_et}` required", _f, f"`{_et}` events",
+                     lambda r, k=_f: isinstance(r.get(k), dict)
+                     and not _is_empty(r[k].get("x"))
+                     and not _is_empty(r[k].get("z")),
+                     applicable_filter=_filt)
+            else:
+                _add(f"`{_et}` required", _f, f"`{_et}` events",
+                     lambda r, k=_f: not _is_empty(r.get(k)),
+                     applicable_filter=_filt)
+
+    # ---- player_pos shape (when present, must have x and z) ----
+    _add("player_pos shape", "x and z both present (when player_pos is emitted)",
+         "events with a player_pos object",
+         lambda r: not _is_empty(r["player_pos"].get("x")) and not _is_empty(r["player_pos"].get("z")),
+         applicable_filter=lambda r: isinstance(r.get("player_pos"), dict) and len(r["player_pos"]) > 0)
+
+    _add("player_pos shape", "no empty `{}` (omit instead)", "all events",
+         lambda r: not (isinstance(r.get("player_pos"), dict) and len(r["player_pos"]) == 0))
+
+    # ---- Deprecated fields should not appear ----
+    _add("Deprecated fields", "no `packed_level_instance` (deprecated → use `rooms`)",
+         "all events",
+         lambda r: "packed_level_instance" not in r)
+    _add("Deprecated fields", "no `packed_level_actor` (deprecated)",
+         "all events",
+         lambda r: "packed_level_actor" not in r)
+
+    _results = pd.DataFrame(_checks)
+    _passes = (_results["Status"] == "✅").sum()
+    _warns = (_results["Status"] == "⚠️").sum()
+    _fails = (_results["Status"] == "❌").sum()
+    _na = (_results["Status"] == "—").sum()
+
+    _banner = mo.callout(
+        mo.md(
+            f"**{_passes} pass · {_warns} partial · {_fails} fail · {_na} n/a** "
+            f"across {len(_results)} schema rules · {len(records):,} events"
+        ),
+        kind="success" if _fails == 0 and _warns == 0 else ("warn" if _fails == 0 else "danger"),
+    )
+
+    _by_section = {}
+    for _section, _grp in _results.groupby("Section", sort=False):
+        _by_section[_section] = mo.ui.table(_grp.reset_index(drop=True), selection=None)
+
+    mo.vstack(
+        [
+            _banner,
+            mo.ui.table(_results, selection=None),
+            mo.md("### Per-Section Detail"),
+            mo.ui.tabs(_by_section),
         ]
     )
     return
