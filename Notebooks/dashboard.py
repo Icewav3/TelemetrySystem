@@ -618,6 +618,10 @@ def _(
                     # Heatmap arrays are large; the plot cell only reads
                     # them, so share the reference rather than deep-copying.
                     "heatmaps": _heatmaps,
+                    # Stats snapshotted here so the side-by-side layout cell
+                    # rebuilds at this throttled cadence too, instead of the
+                    # 1.5s data tick (which would re-flash the figure).
+                    "stats": dict(_stats),
                 }
         except Exception:
             _new_snap = None
@@ -673,6 +677,11 @@ def _(
             color="#666",
         ),
         transition=dict(duration=300, easing="cubic-in-out"),
+        # Preserve user-driven zoom/pan across figure replacements. As long as
+        # this value stays constant between rebuilds, Plotly does not reset
+        # axis ranges or other UI state when the figure is replaced. See
+        # https://plotly.com/python/uirevision/
+        uirevision="arena",
     )
 
     try:
@@ -840,28 +849,37 @@ def _(
         fig.update_layout(title=dict(text=_v, font=dict(size=20)), **_base_layout)
 
     fig.update_xaxes(autorange="reversed")  # GOTTA MOVE ELSEWHERE
-    fig
+    arena_fig = fig
+    return (arena_fig,)
+
+
+@app.cell
+def _(arena_fig, mo, stats_column):
+    # Side-by-side layout: stats column left, arena right. Both inputs change
+    # together (throttled snapshot), so this cell rebuilds at the throttled
+    # cadence — no figure re-flash on the 1.5s data tick.
+    mo.hstack(
+        [stats_column, arena_fig],
+        widths=[1, 4],
+        align="stretch",
+        gap=1.0,
+    )
     return
 
 
 @app.cell
-def _(get_stats, mo):
-    try:
-        _s = dict(get_stats())
-    except Exception:
-        _s = {
-            "active_sessions": 0,
-            "total_deaths": 0,
-            "total_damage": 0.0,
-            "peak_concurrent": 0,
-            "events_per_sec": 0.0,
-        }
+def _(get_plot_snap, mo):
+    # Stats column drives off the throttled plot_snap (not get_stats directly)
+    # so this cell rebuilds at the same cadence as the figure. That keeps the
+    # side-by-side layout cell from re-flashing the figure on every 1.5s data
+    # tick. Stats can lag by up to PLOT_MIN_INTERVAL — fine for "Total Deaths".
+    _snap = get_plot_snap()
+    _s = _snap.get("stats") or {}
 
     def _tile(label, value, accent):
         return mo.md(
             f"""
             <div style="
-                flex: 1 1 0; min-width: 0;
                 padding: 22px 26px;
                 background: linear-gradient(180deg, #1a1d23 0%, #15181d 100%);
                 border-top: 2px solid {accent};
@@ -886,7 +904,7 @@ def _(get_stats, mo):
         except Exception:
             return "0"
 
-    _tiles = mo.hstack(
+    stats_column = mo.vstack(
         [
             _tile("Active Sessions", _fmt_int(_s.get("active_sessions", 0)), "#4FC3F7"),
             _tile("Total Deaths", _fmt_int(_s.get("total_deaths", 0)), "#FF5252"),
@@ -898,11 +916,9 @@ def _(get_stats, mo):
                 "Events / sec", _fmt_float(_s.get("events_per_sec", 0.0), 1), "#81C784"
             ),
         ],
-        justify="space-between",
         gap=0.75,
     )
-    _tiles
-    return
+    return (stats_column,)
 
 
 @app.cell
