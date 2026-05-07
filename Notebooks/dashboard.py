@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.2"
+__generated_with = "0.23.5"
 app = marimo.App(width="full")
 
 
@@ -188,8 +188,10 @@ def _(mo):
     )
     mo.hstack(
         [
-            mo.md("**data**"), data_refresh,
-            mo.md("**plots**"), plot_refresh,
+            mo.md("**data**"),
+            data_refresh,
+            mo.md("**plots**"),
+            plot_refresh,
         ],
         justify="start",
         gap=1.0,
@@ -202,7 +204,6 @@ def _(math, re):
     _UAID_RE = re.compile(r"_C_UAID_[A-F0-9_]+$")
     _TRAILING_C = re.compile(r"_C$")
     _TRAILING_DIGITS = re.compile(r"\d+$")
-
 
     def xz_to_bin(x, z, bounds, grid):
         if not (math.isfinite(x) and math.isfinite(z)):
@@ -217,7 +218,6 @@ def _(math, re):
             return ix, iz
         return None
 
-
     def clean_damage_source(raw):
         if not raw:
             return "unknown"
@@ -229,12 +229,10 @@ def _(math, re):
         s = _TRAILING_DIGITS.sub("", s)
         return s or "unknown"
 
-
     def short_session(sid):
         if not sid:
             return "?"
         return str(sid)[-6:]
-
 
     def safe_float(v, default=0.0):
         try:
@@ -435,22 +433,35 @@ def _(
                             _rx = pos.get("x")
                             _rz = pos.get("z")
                             cause_raw = (
-                                evt.get("cause") or evt.get("damage_source") or "unknown"
+                                evt.get("cause")
+                                or evt.get("damage_source")
+                                or "unknown"
                             )
                             cause = clean_damage_source(cause_raw)
                             src_class = clean_damage_source(
-                                evt.get("damage_source_class") or evt.get("damage_source")
+                                evt.get("damage_source_class")
+                                or evt.get("damage_source")
                             )
                             _cause_counts[cause] = _cause_counts.get(cause, 0) + 1
-                            x = safe_float(_rx, default=None) if _rx is not None else None
-                            z = safe_float(_rz, default=None) if _rz is not None else None
+                            x = (
+                                safe_float(_rx, default=None)
+                                if _rx is not None
+                                else None
+                            )
+                            z = (
+                                safe_float(_rz, default=None)
+                                if _rz is not None
+                                else None
+                            )
                             if x is not None and z is not None:
                                 b = xz_to_bin(x, z, BOUNDS, HEATMAP_GRID)
                                 if b:
                                     _heatmaps["deaths"][b[1], b[0]] += 1
                                 _recent_deaths.append((ts, x, z, cause, src_class, sid))
                             else:
-                                _recent_deaths.append((ts, 0.0, 0.0, cause, src_class, sid))
+                                _recent_deaths.append(
+                                    (ts, 0.0, 0.0, cause, src_class, sid)
+                                )
                     except Exception as exc:
                         _errors_this_tick += 1
                         _last_err = f"dispatch: {exc}"
@@ -492,9 +503,15 @@ def _(mo):
         options=["Live Arena", "Death Heatmap", "Session Paths"],
         value="Live Arena",
         label="",
+        inline=True,
     )
     auto_cycle_switch = mo.ui.switch(value=True, label="auto-cycle when idle")
-    mo.hstack([view, auto_cycle_switch], justify="start", gap=2.0)
+    mo.hstack(
+        [view, auto_cycle_switch],
+        justify="end",
+        align="center",
+        gap=1.5,
+    )
     return auto_cycle_switch, view
 
 
@@ -744,7 +761,9 @@ def _(
                     title=dict(text="Death Heatmap", font=dict(size=20)), **_base_layout
                 )
             else:
-                _grid = gaussian_filter(_heatmaps["deaths"].astype(np.float32), BLUR_SIGMA)
+                _grid = gaussian_filter(
+                    _heatmaps["deaths"].astype(np.float32), BLUR_SIGMA
+                )
                 _gh, _gw = _grid.shape
                 _xcoords = np.linspace(BOUNDS["x_min"], BOUNDS["x_max"], _gw)
                 _zcoords = np.linspace(BOUNDS["z_min"], BOUNDS["z_max"], _gh)
@@ -820,6 +839,7 @@ def _(
         fig = go.Figure()
         fig.update_layout(title=dict(text=_v, font=dict(size=20)), **_base_layout)
 
+    fig.update_xaxes(autorange="reversed")  # GOTTA MOVE ELSEWHERE
     fig
     return
 
@@ -837,24 +857,22 @@ def _(get_stats, mo):
             "events_per_sec": 0.0,
         }
 
-
     def _tile(label, value, accent):
         return mo.md(
             f"""
             <div style="
-                padding: 18px 22px;
-                background: #1a1d23;
-                border-left: 5px solid {accent};
-                border-radius: 4px;
-                min-width: 170px;
-                box-shadow: 0 0 20px {accent}33;
+                flex: 1 1 0; min-width: 0;
+                padding: 22px 26px;
+                background: linear-gradient(180deg, #1a1d23 0%, #15181d 100%);
+                border-top: 2px solid {accent};
+                border-radius: 6px;
+                box-shadow: 0 0 28px {accent}26, inset 0 0 0 1px #23272f;
             ">
-              <div style="color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 1.5px;">{label}</div>
-              <div style="color: #f5f5f5; font-size: 48px; font-weight: 700; line-height: 1.1; margin-top: 6px;">{value}</div>
+              <div style="color: #7d8590; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">{label}</div>
+              <div style="color: #f5f5f5; font-size: 56px; font-weight: 700; line-height: 1.05; margin-top: 8px; font-variant-numeric: tabular-nums;">{value}</div>
             </div>
             """
         )
-
 
     def _fmt_int(v):
         try:
@@ -862,24 +880,26 @@ def _(get_stats, mo):
         except Exception:
             return "0"
 
-
     def _fmt_float(v, prec=1):
         try:
             return f"{float(v):,.{prec}f}"
         except Exception:
             return "0"
 
-
     _tiles = mo.hstack(
         [
             _tile("Active Sessions", _fmt_int(_s.get("active_sessions", 0)), "#4FC3F7"),
             _tile("Total Deaths", _fmt_int(_s.get("total_deaths", 0)), "#FF5252"),
-            _tile("Total Damage", _fmt_float(_s.get("total_damage", 0.0), 0), "#FF7043"),
+            _tile(
+                "Total Damage", _fmt_float(_s.get("total_damage", 0.0), 0), "#FF7043"
+            ),
             _tile("Peak Concurrent", _fmt_int(_s.get("peak_concurrent", 0)), "#BA68C8"),
-            _tile("Events / sec", _fmt_float(_s.get("events_per_sec", 0.0), 1), "#81C784"),
+            _tile(
+                "Events / sec", _fmt_float(_s.get("events_per_sec", 0.0), 1), "#81C784"
+            ),
         ],
-        justify="start",
-        gap=1.0,
+        justify="space-between",
+        gap=0.75,
     )
     _tiles
     return
@@ -898,13 +918,14 @@ def _(data_refresh, dt, get_recent_deaths, mo, short_session):
     if not _deaths:
         _card = """
         <div style="
-            padding: 18px 22px;
-            background: #1a1d23;
-            border-left: 4px solid #444;
-            border-radius: 4px;
+            padding: 22px 28px;
+            background: linear-gradient(180deg, #1a1d23 0%, #15181d 100%);
+            border-top: 2px solid #2a2f38;
+            border-radius: 6px;
+            box-shadow: inset 0 0 0 1px #23272f;
         ">
-          <div style="color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 1.5px;">Last Death</div>
-          <div style="color: #666; font-size: 22px; margin-top: 8px;">Waiting for first death...</div>
+          <div style="color: #7d8590; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">Last Death</div>
+          <div style="color: #555; font-size: 22px; margin-top: 10px; font-style: italic;">awaiting first event</div>
         </div>
         """
     else:
@@ -933,22 +954,27 @@ def _(data_refresh, dt, get_recent_deaths, mo, short_session):
         except Exception:
             _coord_str = ""
 
+        _glow = "0 0 32px rgba(255,82,82,0.28)" if _fresh else "0 0 0 rgba(0,0,0,0)"
         _card = f"""
         <div style="
-            padding: 18px 22px;
-            background: #1a1d23;
-            border-left: 4px solid {_accent};
-            border-radius: 4px;
+            padding: 22px 28px;
+            background: linear-gradient(180deg, #1a1d23 0%, #15181d 100%);
+            border-top: 2px solid {_accent};
+            border-radius: 6px;
             opacity: {_opacity};
-            transition: opacity 0.6s, border-color 0.6s;
-            box-shadow: 0 0 24px {("rgba(255,82,82,0.25)" if _fresh else "rgba(0,0,0,0)")};
+            transition: opacity 0.6s, border-color 0.6s, box-shadow 0.6s;
+            box-shadow: {_glow}, inset 0 0 0 1px #23272f;
         ">
-          <div style="color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 1.5px;">Last Death</div>
-          <div style="color: {_headline_color}; font-size: 36px; font-weight: 700; line-height: 1.1; margin-top: 6px;">
-            {_cause} &middot; {_src}
+          <div style="color: #7d8590; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">Last Death</div>
+          <div style="color: {_headline_color}; font-size: 38px; font-weight: 700; line-height: 1.1; margin-top: 8px;">
+            {_cause} <span style="color: #555; font-weight: 400;">&middot;</span> {_src}
           </div>
-          <div style="color: #888; font-size: 15px; margin-top: 10px;">
-            session {short_session(_sid)} &nbsp;|&nbsp; {_secs_ago}s ago &nbsp;|&nbsp; {_coord_str}
+          <div style="color: #7d8590; font-size: 14px; margin-top: 12px; font-family: 'SF Mono', Consolas, monospace; letter-spacing: 0.5px;">
+            <span style="color: #c9d1d9;">{short_session(_sid)}</span>
+            <span style="color: #3a3f47; margin: 0 10px;">|</span>
+            {_secs_ago}s ago
+            <span style="color: #3a3f47; margin: 0 10px;">|</span>
+            {_coord_str}
           </div>
         </div>
         """
@@ -969,7 +995,6 @@ def _(MAX_KIOSKS, dt, get_session_meta, mo, short_session):
         key=lambda kv: (not kv[1].get("active", False), kv[1].get("start", "")),
     )[:MAX_KIOSKS]
 
-
     def _fmt_duration(start_ts, last_ts):
         try:
             _s = dt.datetime.fromisoformat(str(start_ts).replace("Z", "+00:00"))
@@ -978,7 +1003,6 @@ def _(MAX_KIOSKS, dt, get_session_meta, mo, short_session):
             return f"{secs // 60}:{secs % 60:02d}"
         except Exception:
             return "—"
-
 
     _rows_html = []
     for _sid, _m in _items:
@@ -989,35 +1013,38 @@ def _(MAX_KIOSKS, dt, get_session_meta, mo, short_session):
             _dth = int(_m.get("deaths", 0))
             _dmg = int(_m.get("damage_dealt", 0.0))
             _dot_op = "1" if _active else "0.35"
-            _row_op = "1" if _active else "0.55"
+            _row_op = "1" if _active else "0.5"
+            _status_text = "live" if _active else "ended"
+            _status_color = "#4cd964" if _active else "#555"
             _rows_html.append(
                 f"""
                 <div style="
                     display: grid;
-                    grid-template-columns: 28px 1fr 100px 80px 110px;
-                    align-items: center; gap: 16px;
-                    padding: 12px 18px; border-bottom: 1px solid #2a2f38;
-                    opacity: {_row_op};
+                    grid-template-columns: 18px 1fr 70px 130px 120px 140px;
+                    align-items: center; gap: 22px;
+                    padding: 16px 24px; border-bottom: 1px solid #23272f;
+                    opacity: {_row_op}; transition: opacity 0.4s;
                 ">
                   <span style="
-                      width: 14px; height: 14px; border-radius: 50%;
+                      width: 12px; height: 12px; border-radius: 50%;
                       background: {_color}; opacity: {_dot_op};
-                      box-shadow: 0 0 10px {_color}88;
+                      box-shadow: 0 0 12px {_color}aa;
                   "></span>
-                  <span style="color: #c9d1d9; font-size: 18px; font-family: monospace;">
-                      session {short_session(_sid)}
+                  <span style="color: #f5f5f5; font-size: 20px; font-family: 'SF Mono', Consolas, monospace; letter-spacing: 0.5px;">
+                      {short_session(_sid)}
                   </span>
-                  <span style="color: #c9d1d9; font-size: 18px;">{_dur}</span>
-                  <span style="color: #FF5252; font-size: 18px; font-weight: 600;">{_dth}</span>
-                  <span style="color: #FF7043; font-size: 18px; font-weight: 600;">{_dmg:,}</span>
+                  <span style="color: {_status_color}; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">{_status_text}</span>
+                  <span style="color: #c9d1d9; font-size: 20px; font-variant-numeric: tabular-nums;">{_dur}</span>
+                  <span style="color: #FF5252; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;">{_dth}</span>
+                  <span style="color: #FF7043; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;">{_dmg:,}</span>
                 </div>
                 """
             )
         except Exception:
             _rows_html.append(
                 """
-                <div style="padding: 12px 18px; color: #555; font-size: 14px;">
-                  (session row unavailable)
+                <div style="padding: 16px 24px; color: #555; font-size: 14px;">
+                  (row unavailable)
                 </div>
                 """
             )
@@ -1025,8 +1052,8 @@ def _(MAX_KIOSKS, dt, get_session_meta, mo, short_session):
     if not _rows_html:
         _rows_html.append(
             """
-            <div style="padding: 16px 18px; color: #555; font-size: 16px;">
-              Waiting for sessions...
+            <div style="padding: 22px 24px; color: #555; font-size: 18px; font-style: italic;">
+              awaiting kiosks
             </div>
             """
         )
@@ -1034,17 +1061,18 @@ def _(MAX_KIOSKS, dt, get_session_meta, mo, short_session):
     _header = """
     <div style="
         display: grid;
-        grid-template-columns: 28px 1fr 100px 80px 110px;
-        gap: 16px; padding: 10px 18px;
-        color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;
-        border-bottom: 1px solid #2a2f38;
+        grid-template-columns: 18px 1fr 70px 130px 120px 140px;
+        gap: 22px; padding: 14px 24px;
+        color: #7d8590; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+        background: #15181d;
+        border-bottom: 1px solid #23272f;
     ">
-      <span></span><span>Session</span><span>Duration</span><span>Deaths</span><span>Damage</span>
+      <span></span><span>Session</span><span></span><span>Duration</span><span>Deaths</span><span>Damage</span>
     </div>
     """
 
     _table = (
-        '<div style="background: #1a1d23; border-radius: 4px; overflow: hidden;">'
+        '<div style="background: #1a1d23; border-radius: 6px; overflow: hidden; box-shadow: inset 0 0 0 1px #23272f;">'
         + _header
         + "".join(_rows_html)
         + "</div>"
@@ -1064,9 +1092,14 @@ def _(get_cause_counts, go, mo):
         mo.md(
             """
             <div style="
-                padding: 16px 18px; background: #1a1d23; border-radius: 4px;
-                color: #555; font-size: 16px;
-            ">No deaths yet — cause breakdown will populate live.</div>
+                padding: 22px 26px;
+                background: linear-gradient(180deg, #1a1d23 0%, #15181d 100%);
+                border-radius: 6px;
+                box-shadow: inset 0 0 0 1px #23272f;
+            ">
+              <div style="color: #7d8590; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">Cause of Death</div>
+              <div style="color: #555; font-size: 18px; margin-top: 12px; font-style: italic;">no deaths recorded yet</div>
+            </div>
             """
         )
     else:
@@ -1074,6 +1107,11 @@ def _(get_cause_counts, go, mo):
             _sorted = sorted(_counts.items(), key=lambda kv: kv[1], reverse=True)[:8]
             _causes = [c for c, _ in _sorted]
             _vals = [v for _, v in _sorted]
+            _max_v = max(_vals) if _vals else 1
+            # Per-bar opacity ramp so the most common cause reads strongest.
+            _bar_colors = [
+                f"rgba(255, 112, 67, {0.35 + 0.55 * (v / _max_v):.2f})" for v in _vals
+            ]
 
             _fig = go.Figure(
                 go.Bar(
@@ -1081,23 +1119,34 @@ def _(get_cause_counts, go, mo):
                     y=_causes,
                     orientation="h",
                     marker=dict(
-                        color="#FF5252",
-                        line=dict(color="#FF7043", width=1),
+                        color=_bar_colors,
+                        line=dict(width=0),
                     ),
-                    text=[str(v) for v in _vals],
+                    text=[f"{v:,}" for v in _vals],
                     textposition="outside",
-                    textfont=dict(color="#f5f5f5", size=14),
+                    textfont=dict(color="#c9d1d9", size=14),
                     hoverinfo="skip",
+                    cliponaxis=False,
                 )
             )
             _fig.update_layout(
-                title=dict(text="Cause of Death", font=dict(size=18, color="#c9d1d9")),
+                title=dict(
+                    text="Cause of Death",
+                    font=dict(size=13, color="#7d8590", family="system-ui"),
+                    x=0.0,
+                    xanchor="left",
+                ),
                 paper_bgcolor="#1a1d23",
                 plot_bgcolor="#1a1d23",
                 font=dict(color="#c9d1d9"),
-                margin=dict(l=180, r=60, t=50, b=30),
-                height=240,
-                xaxis=dict(showgrid=False, zeroline=False, color="#666"),
+                margin=dict(l=200, r=80, t=50, b=24),
+                height=260,
+                xaxis=dict(
+                    showgrid=False,
+                    zeroline=False,
+                    color="#3a3f47",
+                    tickfont=dict(size=12),
+                ),
                 yaxis=dict(
                     autorange="reversed",
                     showgrid=False,
@@ -1105,6 +1154,7 @@ def _(get_cause_counts, go, mo):
                     tickfont=dict(size=15, color="#c9d1d9"),
                 ),
                 showlegend=False,
+                bargap=0.35,
             )
             _fig
         except Exception:
